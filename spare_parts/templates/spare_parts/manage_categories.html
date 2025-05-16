@@ -1,0 +1,291 @@
+{% extends "spare_parts/base.html" %} {% comment %} MODIFIED: Extends app-specific base {% endcomment %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Manage Categories" %}{% endblock %}
+
+{% block head_extra %}
+  {% comment %} DataTables CSS is in spare_parts/base.html now {% endcomment %}
+  <style>
+    .action-buttons .btn {
+        margin-right: 5px; /* For LTR. RTL would be margin-left if not handled by Bootstrap RTL */
+    }
+    html[dir="rtl"] .action-buttons .btn {
+        margin-right: 0;
+        margin-left: 5px;
+    }
+    #categoryEditModal .modal-body .form-group label { /* Ensure labels are aligned in RTL */
+        text-align: right;
+        width: 100%;
+    }
+    /* Ensure spinner is positioned correctly in RTL for modal buttons */
+    html[dir="rtl"] #addCategoryForm .btn-primary .loading-spinner,
+    html[dir="rtl"] #editCategoryForm .btn-primary .loading-spinner {
+        margin-left: 0;
+        margin-right: 5px;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>{% translate "Manage Categories" %}</h2>
+    <button class="btn btn-primary" data-toggle="modal" data-target="#categoryAddModal">
+      <i class="fas fa-plus"></i> {% translate "Add New Category" %}
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="categoriesTable" class="table table-striped table-bordered" style="width:100%;">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>{% translate "Category Name" %}</th>
+              <th>{% translate "Actions" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% comment %} Data will be populated by DataTables via AJAX {% endcomment %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="categoryAddModal" tabindex="-1" role="dialog" aria-labelledby="categoryAddModalLabel" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="addCategoryForm" novalidate>
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoryAddModalLabel">{% translate "Add New Category" %}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="add-category-name">{% translate "Category Name" %}</label> {# Assuming 'form.name.label' was a placeholder #}
+            <input type="text" class="form-control" id="add-category-name" name="name" required>
+            <div class="invalid-feedback">{% translate "Category name is required." %}</div>
+          </div>
+          <div id="addCategoryError" class="text-danger small mt-1"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">{% translate "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary">
+            <span class="submit-text">{% translate "Save Category" %}</span>
+            <span class="spinner-border spinner-border-sm loading-spinner" role="status" aria-hidden="true" style="display: none;"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="categoryEditModal" tabindex="-1" role="dialog" aria-labelledby="categoryEditModalLabel" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form id="editCategoryForm" novalidate>
+        {% csrf_token %}
+        <input type="hidden" id="edit-category-id" name="id">
+        <div class="modal-header">
+          <h5 class="modal-title" id="categoryEditModalLabel">{% translate "Edit Category" %}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-category-name">{% translate "Category Name" %}</label> {# Assuming 'form.name.label' was a placeholder #}
+            <input type="text" class="form-control" id="edit-category-name" name="name" required>
+            <div class="invalid-feedback">{% translate "Category name is required." %}</div>
+          </div>
+           <div id="editCategoryError" class="text-danger small mt-1"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">{% translate "Cancel" %}</button>
+          <button type="submit" class="btn btn-primary">
+            <span class="submit-text">{% translate "Save Changes" %}</span>
+            <span class="spinner-border spinner-border-sm loading-spinner" role="status" aria-hidden="true" style="display: none;"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts_extra %}
+{% comment %} DataTables JS is in spare_parts/base.html now {% endcomment %}
+<script>
+$(document).ready(function() {
+    const categoriesTable = $('#categoriesTable').DataTable({
+        processing: true,
+        serverSide: false, // Using client-side processing for this example. Change if API supports server-side.
+        ajax: {
+            url: URLS.listCategories + "?datatables=true", // Ensure URLS is defined (from base or this page)
+            dataSrc: 'data', // Assuming your API returns { "data": [[id, name], ...] }
+            error: function(xhr, error, thrown) {
+                console.error("Error loading categories for table:", error, thrown);
+                $('#categoriesTable_processing').hide(); // Hide "processing" message
+                alert("{% translate 'Failed to load categories. Please check console for errors.' %}");
+            }
+        },
+        columns: [
+            { data: 0, title: "ID" }, // ID
+            { data: 1, title: "{% translate 'Category Name' %}" }, // Name
+            {
+                data: null,
+                title: "{% translate 'Actions' %}",
+                orderable: false,
+                searchable: false,
+                className: "action-buttons text-center",
+                render: function(data, type, row) {
+                    const categoryId = row[0]; // ID is the first element in the row array
+                    const categoryName = row[1]; // Name is the second element
+                    const editButton = `<button class="btn btn-sm btn-info edit-category-btn" data-id="${categoryId}" data-name="${categoryName}"><i class="fas fa-edit"></i> {% translate "Edit" %}</button>`;
+                    const deleteButton = `<button class="btn btn-sm btn-danger delete-category-btn" data-id="${categoryId}"><i class="fas fa-trash"></i> {% translate "Delete" %}</button>`;
+                    return editButton + ' ' + deleteButton;
+                }
+            }
+        ],
+        language: DATA_TABLES_ARABIC || { // Fallback if DATA_TABLES_ARABIC is not loaded from base
+            "emptyTable": "{% translate 'No categories found.' %}",
+            "info": "{% translate 'Showing _START_ to _END_ of _TOTAL_ categories' %}",
+            "infoEmpty": "{% translate 'Showing 0 to 0 of 0 categories' %}",
+            "lengthMenu": "{% translate 'Show _MENU_ categories' %}",
+            "loadingRecords": "{% translate 'Loading...' %}",
+            "processing": "{% translate 'Processing...' %}",
+            "search": "{% translate 'Search:' %}",
+            "zeroRecords": "{% translate 'No matching categories found' %}",
+            "paginate": {
+                "first": "{% translate 'First' %}",
+                "last": "{% translate 'Last' %}",
+                "next": "{% translate 'Next' %}",
+                "previous": "{% translate 'Previous' %}"
+            },
+        }
+    });
+
+    function handleFormSubmission(formId, modalId, url, method, errorDisplayId, isEdit = false) {
+        $(formId).on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            const nameInput = $(formId + (isEdit ? ' #edit-category-name' : ' #add-category-name'));
+            const errorDiv = $(errorDisplayId);
+            const submitButton = $(formId + ' button[type="submit"]');
+            const submitText = submitButton.find('.submit-text');
+            const spinner = submitButton.find('.loading-spinner');
+
+            nameInput.removeClass('is-invalid');
+            errorDiv.text('');
+
+            if (!nameInput.val().trim()) {
+                nameInput.addClass('is-invalid');
+                nameInput.siblings('.invalid-feedback').show();
+                return;
+            }
+            nameInput.siblings('.invalid-feedback').hide();
+
+            submitText.hide(); spinner.show(); submitButton.prop('disabled', true);
+
+            let ajaxUrl = url;
+            if (isEdit) {
+                const categoryId = $(formId + ' #edit-category-id').val();
+                ajaxUrl = url.replace('0', categoryId); // Replace placeholder if URL needs ID
+            }
+            
+            $.ajax({
+                url: ajaxUrl,
+                method: method,
+                data: form.serialize(),
+                headers: {'X-CSRFToken': CSRF_TOKEN}, // CSRF_TOKEN from base template
+                success: function(response) {
+                    if (response.success) {
+                        $(modalId).modal('hide');
+                        categoriesTable.ajax.reload(null, false); // Reload DataTable, false = don't reset pagination
+                        form[0].reset();
+                    } else {
+                        let errorMsg = "{% translate 'Unknown error.' %}";
+                        if(response.errors && response.errors.name) {
+                             errorMsg = response.errors.name[0].message || response.errors.name[0];
+                        } else if (response.error) {
+                            errorMsg = response.error;
+                        }
+                        errorDiv.text(errorMsg);
+                    }
+                },
+                error: function(xhr) {
+                    const errorMsg = xhr.responseJSON && xhr.responseJSON.error ?
+                                     xhr.responseJSON.error :
+                                     (xhr.responseJSON && xhr.responseJSON.errors && xhr.responseJSON.errors.name ?
+                                     (xhr.responseJSON.errors.name[0].message || xhr.responseJSON.errors.name[0]) :
+                                     "{% translate 'An error occurred.' %}");
+                    errorDiv.text(errorMsg);
+                },
+                complete: function() {
+                    submitText.show(); spinner.hide(); submitButton.prop('disabled', false);
+                }
+            });
+        });
+    }
+
+    handleFormSubmission('#addCategoryForm', '#categoryAddModal', URLS.addCategory, 'POST', '#addCategoryError');
+    // For edit, the URL needs the ID. We'll use a placeholder and replace it.
+    // The URLS.editCategoryBase is "/spareparts/api/categories/", so we append "ID/edit/"
+    handleFormSubmission('#editCategoryForm', '#categoryEditModal', URLS.editCategoryBase + '0/edit/', 'POST', '#editCategoryError', true);
+
+
+    // Edit Category - Populate Modal
+    $('#categoriesTable tbody').on('click', '.edit-category-btn', function() {
+        const categoryId = $(this).data('id');
+        const categoryName = $(this).data('name');
+        $('#edit-category-id').val(categoryId);
+        $('#edit-category-name').val(categoryName).removeClass('is-invalid').siblings('.invalid-feedback').hide();
+        $('#editCategoryError').text('');
+        $('#categoryEditModal').modal('show');
+    });
+
+    // Delete Category
+    $('#categoriesTable tbody').on('click', '.delete-category-btn', function() {
+        const categoryId = $(this).data('id');
+        if (confirm(LANG_STRINGS.confirmDelete || '{% translate "Are you sure you want to delete this category?" %}')) {
+            $.ajax({
+                url: URLS.deleteCategoryBase + categoryId + '/delete/', // URLS.deleteCategoryBase is "/spareparts/api/categories/"
+                method: 'POST', // Or 'DELETE'
+                headers: {'X-CSRFToken': CSRF_TOKEN},
+                success: function(response) {
+                    if (response.success) {
+                        categoriesTable.ajax.reload(null, false);
+                    } else {
+                        alert(('{% translate "Error deleting category:" %}') + ' ' + (response.error || '{% translate "Unknown error." %}'));
+                    }
+                },
+                error: function(xhr) {
+                    alert(('{% translate "Error deleting category:" %}') + ' ' + (xhr.responseJSON ? xhr.responseJSON.error : '{% translate "Server error." %}'));
+                }
+            });
+        }
+    });
+
+    // Ensure global URLS, CSRF_TOKEN, LANG_STRINGS, DATA_TABLES_ARABIC are available if not defined in base
+    if (typeof URLS === 'undefined') {
+        console.error("URLS object is not defined. Make sure it's included from a base template or defined here.");
+        // Define fallbacks or show error
+    }
+     if (typeof DATA_TABLES_ARABIC === 'undefined') {
+        console.warn("DATA_TABLES_ARABIC object is not defined. Using minimal fallback.");
+        // Minimal fallback if not loaded from main_script via base template
+        window.DATA_TABLES_ARABIC = { "emptyTable": "{% translate 'No data available in table' %}" };
+    }
+
+
+});
+</script>
+{% endblock %}

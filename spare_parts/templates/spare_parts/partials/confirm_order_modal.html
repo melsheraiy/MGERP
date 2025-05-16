@@ -1,0 +1,37 @@
+{% load i18n %}
+<div class="modal fade" id="confirmOrderModal" tabindex="-1" role="dialog" aria-labelledby="confirmOrderModalLabel" aria-hidden="true" dir="rtl">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmOrderModalLabel">{% translate "Confirm Order Quantity" %}</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="{% translate 'Close' %}">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="confirmOrderForm" novalidate>
+          {% csrf_token %}
+          <input type="hidden" id="orderModalEntryId">
+          <div class="form-group">
+            <label for="requestedQtyDisplay">{% translate "Originally Requested Quantity" %}:</label>
+            <input type="text" id="requestedQtyDisplay" class="form-control" readonly>
+          </div>
+          <div class="form-group">
+            {% comment %} Django form for this could be used, or just raw input validated by JS/backend {% endcomment %}
+            <label for="orderedQtyInput">{% translate "Confirmed Order Quantity" %}:</label>
+            <input type="number" id="orderedQtyInput" name="ordered_qty" class="form-control" required min="0" step="any">
+            <div class="invalid-feedback" id="orderedQtyInputError"></div>
+          </div>
+          <div id="confirmOrderError" class="text-danger mt-2 small"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">{% translate "Cancel" %}</button>
+        <button type="button" class="btn btn-primary" id="submitConfirmOrderBtn">
+            <span class="submit-text">{% translate "Confirm Order" %}</span>
+            <span class="spinner-border spinner-border-sm loading-spinner" role="status" aria-hidden="true" style="display: none;"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

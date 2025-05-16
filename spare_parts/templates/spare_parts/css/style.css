@@ -1,0 +1,153 @@
+/* Main body and layout styles from original Style.html and spare_parts_index.html */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  background-color: #f8f9fa;
+  /* padding-top: 70px; /* This is handled inline in spare_parts_index.html for #main-content */
+}
+
+#user-info-display {
+  font-size: 0.85rem;
+  width: 100%;
+  /* z-index: 1050; */ /* Bootstrap fixed-top usually handles z-index well */
+}
+
+.navbar-brand.hide-print {
+  /* Add specific print hiding styles if needed, though hide-print class should cover it */
+}
+
+.navbutton.active {
+  font-weight: bold;
+  background-color: #007bff !important; /* Bootstrap primary blue */
+  color: white !important;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.main-section {
+    padding-top: 5px; /* Reduced top padding for sections */
+}
+
+/* DataTables specific styling */
+.table-responsive {
+  margin-top: 10px;
+}
+
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+  margin-left: 0.5em; /* RTL: this might need to be margin-right if Bootstrap RTL doesn't handle it */
+  display: inline-block;
+  width: auto;
+  border-radius: 0.2rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Modal styling */
+.modal-header .close {
+  padding: 0.75rem;
+  margin: -0.75rem -0.75rem -0.75rem auto; /* Correct for RTL close button positioning */
+}
+html[dir="rtl"] .modal-header .close {
+    margin: -0.75rem auto -0.75rem -0.75rem; /* Explicit for RTL if needed */
+}
+
+
+/* Form elements */
+.form-control-file {
+  border: 1px solid #ced4da;
+  padding: .375rem .75rem;
+  border-radius: .25rem;
+}
+
+#currentPhotoPreviewContainer img,
+#newPhotoPreviewContainer img {
+  display: block;
+  margin-top: 5px;
+  max-height: 120px; /* Consistent preview size */
+  max-width: 100%;
+  border:1px solid #ddd;
+  border-radius: .25rem;
+  object-fit: contain; /* Shows the whole image, doesn't crop */
+}
+
+#currentPhotoPreviewContainer .form-check { /* For the "Remove photo" checkbox */
+    text-align: right; /* Ensure checkbox label is aligned in RTL */
+}
+
+
+/* Spinner for buttons */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem; /* Adjust size as needed */
+    height: 1rem; /* Adjust size as needed */
+    vertical-align: text-bottom;
+    border: .2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    -webkit-animation: spinner-border .75s linear infinite;
+    animation: spinner-border .75s linear infinite;
+    margin-left: 5px; /* RTL: margin-right if spinner is after text */
+}
+
+/* Print specific styles */
+@media print {
+  .hide-print {
+    display: none !important;
+  }
+  #user-info-display {
+    display: none !important;
+  }
+  #main-content {
+    padding-top: 10px !important;
+  }
+  .main-section { /* By default, hide all sections when printing */
+    display: none;
+  }
+  .main-section:not(.hidden) { /* Show only the currently active (not hidden) section */
+    display: block !important;
+    padding-top: 0 !important; /* Remove extra padding for print */
+  }
+  .navbar { /* Hide the whole navbar */
+      display: none !important;
+  }
+  .table-responsive {
+    overflow-x: visible !important; /* Ensure table content isn't cut off */
+  }
+  .dataTables_wrapper .row:first-child, /* Hide DataTable controls: length, buttons, filter */
+  .dataTables_wrapper .row:last-child { /* Hide DataTable controls: info, pagination */
+      display: none !important;
+  }
+  table.dataTable {
+      border-collapse: collapse !important;
+      width: 100% !important;
+  }
+  table.dataTable th,
+  table.dataTable td {
+      border: 1px solid #dee2e6 !important; /* Bootstrap's default table border color */
+      padding: 0.5rem !important; /* Adjust padding for print */
+      text-align: right !important; /* Ensure RTL text alignment */
+  }
+  table.dataTable th {
+      background-color: #f8f9fa; /* Light background for headers */
+  }
+  .photo-column img, .photo-column a { /* Hide images in photo column for print, or style them smaller */
+      display: none !important;
+  }
+  .actions-column { /* Hide action buttons for print */
+      display: none !important;
+  }
+  .modal { /* Hide modals completely */
+    position: static !important;
+    display: none !important;
+  }
+  body {
+      background-color: #fff !important; /* White background for printing */
+      font-size: 10pt; /* Adjust font size for print */
+  }
+  .container, .container-fluid {
+      padding-left: 5px !important; /* Minimal padding for print */
+      padding-right: 5px !important;
+  }
+}
+

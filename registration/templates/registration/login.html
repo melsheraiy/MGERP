@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0; /* Reset default margin */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+      background: linear-gradient(to right, #74ebd5, #9face6); /* Subtle gradient background */
+    }
+    /* Full viewport height container */
+    .container-center {
+      min-height: 100vh;
+    }
+    /* Company logo styling */
+    .company-logo {
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      max-width: 120px; /* Adjust size as needed */
+      height: auto;
+    }
+    /* Login card styling */
+    .login-card {
+      width: 100%;
+      max-width: 350px;
+      transform: translateY(-10%);
+      background-color: #ffffff; /* Ensure card is white against gradient */
+      border-radius: 8px; /* Slightly more rounded corners */
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15); /* Softer, more pronounced shadow */
+    }
+    /* Mobile adjustments: make the card wider and remove the upward shift */
+    @media (max-width: 576px) {
+      .login-card {
+        width: 90%;
+        padding: 20px; /* Adjust padding for smaller screens */
+        max-width: none;
+        transform: none;
+        margin-top: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Center the login card both horizontally and vertically -->
+  <div class="container container-center d-flex justify-content-center align-items-center">
+    <div class="card p-4 login-card">
+      <!-- Company Logo - Updated Path -->
+      <img src="{% static 'registration/images/company_logo.png' %}" alt="Company Logo" class="company-logo mb-4">
+      
+      <h3 class="text-center mb-4">Login</h3>
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label for="id_username">Username</label>
+          <input type="text" name="username" class="form-control" id="id_username" placeholder="Enter username">
+        </div>
+        <div class="form-group">
+          <label for="id_password">Password</label>
+          <input type="password" name="password" class="form-control" id="id_password" placeholder="Enter password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Login</button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- jQuery and Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+</body>
+</html>

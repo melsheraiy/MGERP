@@ -1,0 +1,284 @@
+{% extends "spare_parts/base.html" %} {% comment %} MODIFIED: Extends app-specific base {% endcomment %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% translate "Spare Parts Order System" %}{% endblock %}
+
+{% block head_extra %}
+  {% comment %} Bootstrap and FontAwesome are in spare_parts/base.html now {% endcomment %}
+  {% comment %} DataTables CSS is also in spare_parts/base.html, but can be here if only this page uses it heavily {% endcomment %}
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/1.6.5/css/buttons.bootstrap4.min.css">
+  <link rel="stylesheet" href="{% static 'spare_parts/css/style.css' %}">
+  <style>
+    /* Styles from original Style.html, can be moved to style.css */
+    /* #user-info-display is now part of the main nav in this template, not fixed top separately */
+
+    .navbar-brand.hide-print, .navbutton.hide-print {
+        /* Styles for hiding during print if any */
+    }
+    .navbutton.active {
+      font-weight: bold;
+      background-color: #007bff !important; /* Bootstrap primary blue */
+      color: white !important;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .main-section {
+        padding-top: 5px;
+    }
+    .table-responsive {
+      margin-top: 10px;
+    }
+    .dataTables_wrapper .dataTables_filter input,
+    .dataTables_wrapper .dataTables_length select {
+      margin-left: 0.5em;
+      display: inline-block;
+      width: auto;
+      border-radius: 0.2rem;
+      padding: 0.25rem 0.5rem;
+    }
+    .modal-header .close {
+      padding: 0.75rem;
+      margin: -0.75rem -0.75rem -0.75rem auto;
+    }
+    html[dir="rtl"] .modal-header .close {
+        margin: -0.75rem auto -0.75rem -0.75rem; /* Explicit for RTL if needed */
+    }
+    .form-control-file {
+      border: 1px solid #ced4da;
+      padding: .375rem .75rem;
+      border-radius: .25rem;
+    }
+    #currentPhotoPreviewContainer img, #newPhotoPreviewContainer img {
+      display: block;
+      margin-top: 5px;
+      max-height: 120px; /* Increased for better preview */
+      max-width: 100%;
+      border:1px solid #ddd;
+      border-radius: .25rem;
+      object-fit: contain; /* Ensures image is not cropped badly */
+    }
+    .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        vertical-align: text-bottom;
+        border: .2em solid currentColor;
+        border-right-color: transparent;
+        border-radius: 50%;
+        -webkit-animation: spinner-border .75s linear infinite;
+        animation: spinner-border .75s linear infinite;
+        margin-left: 5px; /* For LTR, adjust for RTL if needed */
+    }
+    html[dir="rtl"] .loading-spinner {
+        margin-left: 0;
+        margin-right: 5px;
+    }
+    /* User info display, now integrated into the secondary navbar */
+    #user-info-bar {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+        background-color: #e9ecef; /* Light grey, similar to Bootstrap's light bg */
+        border-bottom: 1px solid #dee2e6;
+        text-align: left; /* For LTR, adjust for RTL if needed */
+        width: 100%;
+    }
+    html[dir="rtl"] #user-info-bar {
+        text-align: right;
+    }
+
+
+    @media print {
+      .hide-print { display: none !important; }
+      #user-info-bar { display: none !important; }
+      /* #main-content { padding-top: 10px !important; } */ /* main-content div removed */
+      .main-section { display: none; }
+      .main-section:not(.hidden) { display: block !important; }
+      .table-responsive { overflow-x: visible !important; }
+      .dataTables_wrapper .row:first-child,
+      .dataTables_wrapper .row:last-child {
+          display: none !important;
+      }
+      .modal { position: static !important; display: none !important; }
+      nav.navbar { display: none !important; } /* Hide all navbars on print */
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+{% comment %} The main navbar is now in spare_parts/base.html. This is a secondary navigation/action bar. {% endcomment %}
+<div id="user-info-bar" class="hide-print">
+  {% blocktranslate %}User:{% endblocktranslate %} {{ username }} | {% blocktranslate %}Sector:{% endblocktranslate %} {{ sector_name }}
+</div>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light hide-print mb-3 sticky-top" style="top: 56px; z-index: 1020;"> {% comment %} Sticky below the main fixed-top navbar {% endcomment %}
+  <a class="navbar-brand hide-print" href="#">{% translate "Requests Menu" %}</a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <div class="navbar-nav nav-pills mx-auto">
+      <button class="btn btn-sm nav-link navbutton m-1" id="NewEntry-btn">{% translate "New Entry" %}</button>
+      <button class="btn btn-sm nav-link navbutton m-1" id="NewRequests-btn">{% translate "New Requests" %}</button>
+      <button class="btn btn-sm nav-link navbutton m-1" id="OrderedWaiting-btn">{% translate "Ordered & Waiting" %}</button>
+      <button class="btn btn-sm nav-link navbutton m-1" id="ReceivedEntries-btn">{% translate "Received Entries" %}</button>
+      <button class="btn btn-sm nav-link navbutton m-1" id="TodayEntries-btn">{% translate "Today's Entries" %}</button>
+      <button class="btn btn-sm nav-link navbutton m-1" id="MonthEntries-btn">{% translate "Month's Entries" %}</button>
+
+      {% comment %} "Manage Categories" button moved to the main app navbar in spare_parts/base.html {% endcomment %}
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid" style="padding-top: 5px;"> {% comment %} Adjusted padding due to sticky nav {% endcomment %}
+  <div id="NewEntry-section" class="main-section hidden">
+    {% include "spare_parts/partials/entry_form.html" with form=form supervisor_form=supervisor_form is_supervisor=is_supervisor %}
+  </div>
+
+  <div id="NewRequests-section" class="main-section hidden">
+    <h3 class="text-center mt-4">{% translate "New Requests (Under Review)" %}</h3>
+    <div class="table-responsive mt-3">
+      <table id="NewRequests-table" class="table table-striped table-hover table-bordered" style="width:100%;"></table>
+    </div>
+  </div>
+
+  <div id="OrderedWaiting-section" class="main-section hidden">
+    <h3 class="text-center mt-4">{% translate "Ordered and Waiting for Delivery" %}</h3>
+    <div class="table-responsive mt-3">
+      <table id="OrderedWaiting-table" class="table table-striped table-hover table-bordered" style="width:100%;"></table>
+    </div>
+  </div>
+
+  <div id="ReceivedEntries-section" class="main-section hidden">
+    <h3 class="text-center mt-4">{% translate "Received Entries" %}</h3>
+    <div class="table-responsive mt-3">
+      <table id="ReceivedEntries-table" class="table table-striped table-hover table-bordered" style="width:100%;"></table>
+    </div>
+  </div>
+
+  <div id="TodayEntries-section" class="main-section hidden">
+    <h3 class="text-center mt-4">{% translate "Today's Entries" %}</h3>
+    <div class="table-responsive mt-3">
+      <table id="TodayEntries-table" class="table table-striped table-hover table-bordered" style="width:100%;"></table>
+    </div>
+  </div>
+
+  <div id="MonthEntries-section" class="main-section hidden">
+    <h3 class="text-center mt-4">{% translate "This Month's Entries" %}</h3>
+    <div class="table-responsive mt-3">
+      <table id="MonthEntries-table" class="table table-striped table-hover table-bordered" style="width:100%;"></table>
+    </div>
+  </div>
+</div>
+
+
+{% include "spare_parts/partials/confirm_order_modal.html" %}
+{% include "spare_parts/partials/confirm_reception_modal.html" %}
+
+{% endblock %}
+
+{% block scripts_extra %}
+  {% comment %} jQuery, Popper, Bootstrap JS, and base DataTables JS are in spare_parts/base.html now {% endcomment %}
+  <script src="https://cdn.datatables.net/buttons/1.6.5/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.bootstrap4.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+  <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.print.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/1.6.5/js/buttons.colVis.min.js"></script>
+
+  <script>
+    // Pass initial data from Django template to JavaScript
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const CURRENT_USER_USERNAME = "{{ request.user.username|escapejs }}";
+    const USER_SECTOR_INFO = {
+        name: "{{ sector_name|escapejs }}",
+        number: parseInt("{{ sector_number }}") || 0
+    };
+    const IS_SUPERVISOR = "{{ is_supervisor }}" === "True";
+    const IS_MELSHERAIY = "{{ is_melsheraiy }}" === "True";
+
+    const URLS = {
+        listCategories: "{% url 'spare_parts:api_list_categories' %}",
+        addCategory: "{% url 'spare_parts:api_add_category' %}",
+        editCategoryBase: "/spareparts/api/categories/",
+        deleteCategoryBase: "/spareparts/api/categories/",
+        getNewRequests: "{% url 'spare_parts:data_new_requests' %}",
+        getOrderedWaiting: "{% url 'spare_parts:data_ordered_waiting' %}",
+        getReceived: "{% url 'spare_parts:data_received' %}",
+        getTodayEntries: "{% url 'spare_parts:data_today_entries' %}",
+        getMonthEntries: "{% url 'spare_parts:data_month_entries' %}",
+        saveEntry: "{% url 'spare_parts:api_save_entry' %}",
+        getEntryDetailsBase: "/spareparts/api/entry/",
+        deleteEntryBase: "/spareparts/api/entry/",
+        confirmOrderBase: "/spareparts/api/entry/",
+        confirmReceptionBase: "/spareparts/api/entry/",
+    };
+    const LANG_STRINGS = {
+        confirmDelete: "{% translate 'Are you sure you want to delete this item?' %}",
+        errorLoadingData: "{% translate 'Error loading data.' %}",
+        errorSavingData: "{% translate 'Error saving data.' %}",
+        fillRequiredFields: "{% translate 'Please fill all required fields marked with (*).' %}",
+        statusUpdateRequiredQty: "{% translate "When status is 'Received', received quantity is required." %}",
+        newEntry: "{% translate 'New Entry' %}",
+        newRequests: "{% translate 'New Requests' %}",
+        orderedWaiting: "{% translate 'Ordered & Waiting' %}",
+        receivedEntries: "{% translate 'Received Entries' %}",
+        todayEntries: "{% translate "Today's Entries" %}",
+        monthEntries: "{% translate "Month's Entries" %}",
+        actions: "{% translate 'Actions' %}",
+        loadingData: "{% translate 'Loading data...' %}",
+        noDataAvailable: "{% translate 'No data available from server.' %}",
+        noDataToDisplay: "{% translate 'No data to display.' %}",
+        viewFullImage: "{% translate 'View full image' %}",
+        photoAlt: "{% translate 'Photo' %}",
+        all: "{% translate 'All' %}",
+        print: "{% translate 'Print' %}",
+        sparePartsReport: "{% translate 'Spare Parts Report' %}",
+        printDate: "{% translate 'Print Date' %}",
+        edit: "{% translate 'Edit' %}",
+        delete: "{% translate 'Delete' %}",
+        confirmOrder: "{% translate 'Confirm Order' %}",
+        confirmReception: "{% translate 'Confirm Reception' %}",
+        reorder: "{% translate 'Reorder' %}",
+        errorNoIdForEdit: "{% translate 'Error: No ID found for editing.' %}",
+        errorFetchingEditData: "{% translate 'Could not find request data for editing or an error occurred.' %}",
+        errorNoIdForDelete: "{% translate 'Error: No ID found for deletion.' %}",
+        confirmDeleteRequest: "{% translate 'Are you sure you want to delete this request?' %}",
+        errorDeletingRequest: "{% translate 'Failed to delete request.' %}",
+        supervisorOnlyConfirmOrder: "{% translate 'Only supervisors can confirm orders.' %}",
+        errorFetchingOrderDetails: "{% translate 'Error: Could not find order details.' %}",
+        errorConfirmingOrder: "{% translate 'Failed to confirm order.' %}",
+        errorFetchingReceptionDetails: "{% translate 'Error: Could not find reception details.' %}",
+        errorConfirmingReception: "{% translate 'Failed to confirm reception.' %}",
+        errorFetchingReorderData: "{% translate 'Could not find request data for reorder or an error occurred.' %}",
+        newEntryFormTitle: "{% translate 'New Spare Part Request Form' %}",
+        selectCategory: "{% translate 'Select Category...' %}",
+        loadingCategories: "{% translate 'Loading categories...' %}",
+        noCategoriesDefined: "{% translate 'No categories defined in the system.' %}",
+        noCategoriesForSector: "{% translate 'No categories for this sector.' %}",
+        reorderItemTitle: "{% translate 'Reorder Spare Part' %}",
+        editItemTitle: "{% translate 'Edit Spare Part Request' %}",
+        currentPhotoAlt: "{% translate 'Current Photo' %}",
+        previewError: "{% translate 'Could not display preview.' %}",
+        openImageDirectly: "{% translate 'Open image directly' %}",
+        reorderFormReady: "{% translate 'Form ready for reorder. Please review quantity and other details.' %}",
+        editingRequest: "{% translate 'You are editing request number:' %}",
+        savingInProgress: "{% translate 'Saving in progress...' %}",
+        serverError: "{% translate 'Failed to connect to the server.' %}",
+        fileTooLarge: "{% translate 'File size is too large. Maximum 5MB.' %}",
+        newPhotoPreviewAlt: "{% translate 'New photo preview' %}",
+        errorReadingFile: "{% translate 'Error reading file.' %}",
+        photoWillBeRemoved: "{% translate 'Current photo will be removed upon saving.' %}",
+        statusNew: "{% translate 'New Request' %}",
+        statusOrdered: "{% translate 'Ordered and Waiting for Delivery' %}",
+        statusReceived: "{% translate 'Received' %}",
+    };
+  </script>
+  <script src="{% static 'spare_parts/js/entry_form_script.js' %}"></script>
+  <script src="{% static 'spare_parts/js/table_script.js' %}"></script>
+  <script src="{% static 'spare_parts/js/main_script.js' %}"></script>
+
+{% endblock %}

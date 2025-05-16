@@ -1,0 +1,123 @@
+
+{% extends 'contacts/base.html' %}
+{% block title %}جهة اتصال جديدة{% endblock %}
+{% block content %}
+  <div class="container mt-4">
+    <h4 class="mb-4 text-center py-3">جهة اتصال جديدة</h4>
+    <form method="post" id="NewContactForm">
+      {% csrf_token %}
+      
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.name.id_for_label }}">الأسم:</label>
+          {{ form.name }}
+        </div>
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.phone1.id_for_label }}">رقم تليفون 1:</label>
+          {{ form.phone1 }}
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.phone2.id_for_label }}">رقم تليفون 2:</label>
+          {{ form.phone2 }}
+        </div>
+        <div class="form-group col-md-3 col-sm-6 align-self-center">
+          <div class="form-check">
+            {{ form.customer }}
+            <label class="form-check-label" for="{{ form.customer.id_for_label }}">عميل</label>
+          </div>
+        </div>
+        <div class="form-group col-md-3 col-sm-6 align-self-center">
+          <div class="form-check">
+            {{ form.vendor }}
+            <label class="form-check-label" for="{{ form.vendor.id_for_label }}">مورد</label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.address1.id_for_label }}">العنوان 1:</label>
+          {{ form.address1 }}
+        </div>
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.address2.id_for_label }}">العنوان 2:</label>
+          {{ form.address2 }}
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.city.id_for_label }}">المدينة:</label>
+          {{ form.city }}
+        </div>
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.province.id_for_label }}">المحافظة:</label>
+          {{ form.province }}
+          <datalist id="ProvinceList">
+            {% for key, value in form.fields.province.choices %}
+                <option value="{{ key }}">{{ value }}</option>
+            {% endfor %}
+        </datalist>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-4">
+          <label class="float-right" for="{{ form.price_list.id_for_label }}">قائمة الأسعار:</label>
+          {{ form.price_list }}
+        </div>
+        <div class="form-group col-md-4">
+          <label class="float-right" for="{{ form.discount.id_for_label }}">نسبة الخصم:</label>
+          {{ form.discount }}
+        </div>
+        <div class="form-group col-md-4">
+          <label class="float-right" for="{{ form.shipping_cost.id_for_label }}">تكلفة الشحن:</label>
+          {{ form.shipping_cost }}
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-6">
+          <label class="float-right" for="{{ form.payment_method.id_for_label }}">طريقة الدفع:</label>
+          {{ form.payment_method }}
+        </div>
+        <div class="form-group col-md-2 col-sm-6 align-self-center">
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group col-md-12">
+          <label class="float-right" for="{{ form.details.id_for_label }}">تفاصيل أخرى:</label>
+          {{ form.details }}
+        </div>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-block">تأكيد</button>
+    </form>
+  </div>
+
+  <script>
+    // Attach a submit event listener to the form
+    document.getElementById('NewContactForm').addEventListener('submit', function(event) {
+        var provinceInput = document.getElementById('id_province'); // Django typically assigns this id
+        var datalist = document.getElementById('ProvinceList');
+        var valid = false;
+    
+        // Loop through the options in the datalist to check if the input value is valid
+        for (var i = 0; i < datalist.options.length; i++) {
+            if (datalist.options[i].value === provinceInput.value) {
+                valid = true;
+                break;
+            }
+        }
+    
+        if (!valid) {
+            // Show a pop-up alert if the value is invalid
+            alert('Please select a valid province from the list.');
+            event.preventDefault(); // Prevent form submission
+        }
+    });
+    </script>
+{% endblock %}

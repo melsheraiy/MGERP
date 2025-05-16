@@ -1,0 +1,72 @@
+{% extends 'contacts/base.html' %}
+{% block title %}جهات الاتصال{% endblock %}
+{% block content %}
+  <h4 class="mt-4 mb-4 text-center">جهات الاتصال</h4>
+  <table id="contactsTable" class="table table-striped">
+    <thead>
+      <tr>
+        <th>الأسم</th>
+        <th>رقم تليفون 1</th>
+        <th>رقم تليفون 2</th>
+        <th>المدينة</th>
+        <th>المحافظة</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for contact in contacts %}
+      <tr>
+        <td>{{ contact.name }}</td>
+        <td>{{ contact.phone1 }}</td>
+        <td>{{ contact.phone2 }}</td>
+        <td>{{ contact.city }}</td>
+        <td>{{ contact.province }}</td>
+        <td>
+          <a href="{% url 'view_contact' contact.id %}" class="btn btn-info btn-sm">عرض</a>
+          <a href="{% url 'edit_contact' contact.id %}" class="btn btn-warning btn-sm">تعديل</a>
+          <button type="button" class="btn btn-danger btn-sm delete-contact-btn" data-url="{% url 'delete_contact' contact.id %}">حذف</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Placeholder for the delete confirmation modal -->
+  <div id="modal-placeholder"></div>
+
+{% endblock %}
+{% block extra_js %}
+<script>
+  $(document).ready(function(){
+      $('#contactsTable').DataTable({
+        // destroy: true, // Usually not needed on initial load unless re-initializing
+        // data: dataArray, // Remove: DataTables will use the HTML table
+        ordering: true, // Enable ordering if you like, or set to false
+        // columns: columns, // Remove: DataTables will infer columns from HTML
+        responsive: false,
+        autoWidth: false,
+        scrollX: false,
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.5/i18n/ar.json'
+        },
+      });
+      $('#contactsTable').attr('dir', 'rtl'); // Corrected selector
+
+      // Handle delete button click to load modal
+      $('.delete-contact-btn').on('click', function() {
+          var url = $(this).data('url');
+          $('#modal-placeholder').load(url, function() {
+              // The script inside delete_contact.html should show the modal
+              // If not, you can explicitly show it here if needed:
+              // $('#deleteContactModal').modal('show'); 
+          });
+      });
+
+      // Optional: Clear modal content when it's hidden to prevent issues if another delete is clicked
+      $('body').on('hidden.bs.modal', '.modal', function () {
+        $(this).removeData('bs.modal');
+        $('#modal-placeholder').empty(); // Clear the placeholder
+      });
+  });
+</script>
+{% endblock %}

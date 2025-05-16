@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <!-- Responsive viewport meta tag -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <!-- Bootstrap and DataTables CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"> 
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/jquery.dataTables.min.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0; /* Reset default margin */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font */
+      background: linear-gradient(to right, #74ebd5, #9face6); /* Subtle gradient background */
+    }
+    /* Subtract the navbar height (56px) for vertical centering of content */
+    .container-full-height {
+      min-height: calc(100vh - 56px);
+    }
+    /* Flex container for the dashboard icons */
+    .app-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    /* Icon styling */
+    .app {
+      background-color: #ffffff; /* Card background */
+      padding: 15px; /* Increased padding */
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.075); /* Initial subtle shadow */
+      transition: box-shadow 0.3s ease-in-out, transform 0.3s ease-in-out; /* Smooth hover transition */
+      text-align: center;
+      margin: 10px; /* Spacing between cards */
+      width: calc(25% - 20px); /* Aim for 4 icons per row on desktop, accounts for 10px margin on each side */
+      min-width: 150px;         /* Ensures icons don't get too small, helps with responsive wrapping to 3 or 2 items */
+      height: 150px;
+      max-width: 150px;         /* Ensures width does not exceed height, making it square on desktop */
+      /* The existing display:flex properties on .app correctly position its child <a> tag. */
+      /* We'll add overflow:hidden to ensure content stays within the card boundaries. */
+      overflow: hidden; 
+    }
+    .app:hover {
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15); /* More prominent shadow on hover */
+      transform: translateY(-5px); /* Slight lift effect on hover */
+    }
+    /* The container for the icon, allows positioning */
+    .app-icon-container {
+      display: flex;
+      justify-content: center; /* Horizontally center the image */
+      align-items: center; /* Center icon vertically within its container */
+      width: 100%; /* Ensure it uses full available width within the <a> tag */
+      flex-grow: 1; /* Allow this container to grow and take available vertical space */
+      overflow: hidden; /* Prevent image from breaking out of this container if it's too large before scaling */
+    }
+    .app img {
+      max-width: 80%; /* Adjusted for better spacing within its container */
+      max-height: 80%; /* Adjusted for better spacing within its container */
+      width: auto;      /* Let the image scale proportionally */
+      height: auto;     /* Let the image scale proportionally */
+    }
+    .app h3 {
+      font-size: 0.9rem;
+      color: #333333; /* Dark gray text color, not blue */
+      margin-bottom: 0; /* Remove default bottom margin */
+      margin-top: 5px; /* Add a small space between icon container and text */
+      flex-shrink: 0; /* Prevent h3 from shrinking when space is tight */
+      padding: 0 5px; /* Add some horizontal padding to text to prevent touching edges */
+      width: 100%; /* Ensure h3 takes full width for text-align to work correctly */
+      text-align: center; /* Ensure text is centered */
+      overflow: hidden; /* Prevent long text from breaking layout */
+      text-overflow: ellipsis; /* Show ... for long text that doesn't fit */
+      white-space: nowrap; /* Keep text on one line, necessary for ellipsis */
+    }
+    /* Styling for the anchor tag within the app card */
+    .app a, 
+    .app a:hover, 
+    .app a:focus {
+      text-decoration: none !important; /* Remove underline always */
+      color: inherit; /* Inherit text color (h3 will get its color from .app h3) */
+      display: flex; 
+      flex-direction: column;
+      justify-content: flex-start; /* Align children (icon-container, h3) to the start (top) of the <a> tag */
+      align-items: center; /* Center children horizontally within the <a> tag */
+      width: 100%;
+      height: 100%;
+    }
+    /* Navbar logo styling */
+    .navbar-logo {
+      max-height: 35px; /* Adjust size as needed for navbar */
+      height: auto;
+      margin-right: 8px; /* Optional: space between logo and text/next item */
+    }
+
+    /* Mobile view adjustments for app icons */
+    @media (max-width: 767.98px) { /* Screens smaller than Bootstrap's md breakpoint (tablets portrait and phones) */
+      .app {
+        width: calc(50% - 20px); /* Strictly 2 icons per row, accounting for 10px margin on each side */
+        height: 140px;           /* Slightly reduce height for mobile */
+        /* margin: 10px; is inherited from base .app style */
+        padding: 10px;           /* Reduce padding a bit for smaller cards */
+        min-width: 0;            /* Reset min-width for mobile to allow 50% to take full effect */
+      }
+      /* max-width: 150px from base .app style will be inherited.
+         Mobile images will adapt to the new .app card and .app-icon-container size. */
+      .app h3 {
+        font-size: 0.8rem;     /* Smaller font for app names */
+        margin-top: 5px;       /* Ensure a little space between icon area and text */
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Bootstrap Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <a class="navbar-brand" href="{% url 'dashboard' %}"> <!-- Adjust 'dashboard' if your URL name is different -->
+      <img src="{% static 'registration/images/company_logo.png' %}" alt="Company Logo" class="navbar-logo">
+      <!-- Optional: You can add your company name text here if desired -->
+      {% comment %} MGERP {% endcomment %}
+    </a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <!-- Left side: welcome user -->
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item">
+          <span class="nav-link">Welcome, {{ user.username }}</span>
+        </li>
+      </ul>
+      <ul class="navbar-nav ml-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <div class="container container-full-height d-flex justify-content-center align-items-center">
+    <div class="row w-100 app-container">
+      {% for app in apps %}
+        <!-- The .app card itself is now a direct flex item, replacing the col-* structure -->
+        <div class="app">
+          <a href="{{ app.url }}">
+            <div class="app-icon-container">
+              <img src="{% static 'dashboard/icons/'|add:app.icon %}" alt="{{ app.name }}">
+            </div>
+            <h3>{{ app.name }}</h3>
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- jQuery, Bootstrap, and DataTables JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+  <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+</body>
+</html>

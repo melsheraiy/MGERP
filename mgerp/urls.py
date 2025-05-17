@@ -32,4 +32,5 @@ urlpatterns = [
     path('accounting/', include('accounting.urls')),
     path('contacts/', include('contacts.urls')),
     path('salaries/', include('salaries.urls')),
+    path('cashflow/', include('cashflow.urls', namespace='cashflow')),
 ]

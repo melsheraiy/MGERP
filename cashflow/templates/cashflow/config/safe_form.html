@@ -1,0 +1,50 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {% trans "Cash Flow Configuration" %}{% endblock %}
+{% block page_title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        {{ page_title }}
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.media }} {# For widgets like Select2 if used in future #}
+            
+            {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+                {% if object %}
+                    <a href="{{ object.get_absolute_url_for_list_view_or_similar }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                {% else %}
+                     {# Determine appropriate cancel URL based on context if needed #}
+                    <a href="{% url 'cashflow:config_dashboard' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

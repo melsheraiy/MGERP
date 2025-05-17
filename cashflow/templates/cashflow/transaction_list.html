@@ -1,0 +1,80 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n humanize %} {# Assuming you have django.contrib.humanize in INSTALLED_APPS #}
+
+{% block title %}{{ page_title }} - {% trans "Cash Flow" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <span>{{ page_title }}</span>
+            <div>
+                {% if total_balance is not None %}
+                <span class="fw-bold">{% trans "Total Balance" %}: 
+                    <span class="{% if total_balance >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
+                        {{ total_balance|floatformat:2|intcomma }}
+                    </span>
+                </span>
+                {% endif %}
+                {% if today_net_flow is not None %}
+                <span class="fw-bold ms-3">{% trans "Today's Net Flow" %}: 
+                    <span class="{% if today_net_flow >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
+                        {{ today_net_flow|floatformat:2|intcomma }}
+                    </span>
+                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if transactions %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Date" %}</th>
+                            <th>{% trans "Safe" %}</th>
+                            <th>{% trans "Type" %}</th>
+                            <th>{% trans "Category" %}</th>
+                            <th>{% trans "SubCategory" %}</th>
+                            <th class="text-end">{% trans "Amount" %}</th>
+                            <th>{% trans "Payment Method" %}</th>
+                            <th>{% trans "Contact" %}</th>
+                            <th>{% trans "User" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions %}
+                        <tr>
+                            <td>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</td>
+                            <td>{{ transaction.safe.name }}</td>
+                            <td>{{ transaction.category.transaction_type.name }}</td>
+                            <td>{{ transaction.category.name }}</td>
+                            <td>{{ transaction.sub_category.name|default:"-" }}</td>
+                            <td class="text-end {% if transaction.category.transaction_type.name == _('Income') or transaction.category.transaction_type.name == _('Internal Transfer In') %}balance-positive{% elif transaction.category.transaction_type.name == _('Expense') or transaction.category.transaction_type.name == _('Internal Transfer Out') %}balance-negative{% endif %}">
+                                {{ transaction.amount|floatformat:2|intcomma }}
+                            </td>
+                            <td>{{ transaction.get_payment_method_display }}</td>
+                            <td>{{ transaction.contact.name|default:"-" }}</td>
+                            <td>{{ transaction.user.username|default:"-" }}</td>
+                            <td class="action-buttons">
+                                <a href="{% url 'cashflow:transaction_update' transaction.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                                <a href="{% url 'cashflow:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-center">{% trans "No transactions found." %}</p>
+        {% endif %}
+    </div>
+    <div class="card-footer text-center">
+        <a href="{% url 'cashflow:transaction_create' %}" class="btn btn-success">
+            <i class="bi bi-plus-lg"></i> {% trans "Add New Transaction" %}
+        </a>
+    </div>
+</div>
+{% endblock %}

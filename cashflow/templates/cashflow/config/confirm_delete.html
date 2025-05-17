@@ -1,0 +1,40 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Confirm Delete" %} {{ object_type|default:object }} - {% trans "Cash Flow Configuration" %}{% endblock %}
+{% block page_title %}{% trans "Confirm Delete" %} {{ object_type|default:object }}{% endblock %}
+
+{% block content %}
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+        {% trans "Confirm Deletion" %}
+    </div>
+    <div class="card-body">
+        <p>{% blocktrans with object_name=object %}Are you sure you want to delete <strong>{{ object_name }}</strong>?{% endblocktrans %}</p>
+        
+        {% if object.transactions.exists or object.categories.exists or object.subcategories.exists or object.user_assignments.exists %}
+            <div class="alert alert-warning" role="alert">
+                <strong>{% trans "Warning:" %}</strong> {% trans "This item has related data. Deleting it might affect other records or be prevented by database constraints." %}
+                {% if object.transactions.exists %}
+                    <br>- {% blocktrans count counter=object.transactions.count %}{{ counter }} transaction is linked.{% plural %}{{ counter }} transactions are linked.{% endblocktrans %}
+                {% endif %}
+                {% if object.categories.exists %}
+                     <br>- {% blocktrans count counter=object.categories.count %}{{ counter }} category is linked.{% plural %}{{ counter }} categories are linked.{% endblocktrans %}
+                {% endif %}
+                 {% if object.subcategories.exists %}
+                     <br>- {% blocktrans count counter=object.subcategories.count %}{{ counter }} subcategory is linked.{% plural %}{{ counter }} subcategories are linked.{% endblocktrans %}
+                {% endif %}
+                {% if object.user_assignments.exists %}
+                    <br>- {% blocktrans count counter=object.user_assignments.count %}{{ counter }} user assignment is linked.{% plural %}{{ counter }} user assignments are linked.{% endblocktrans %}
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">{% trans "Yes, delete" %}</button>
+            <a href="{{ request.META.HTTP_REFERER|default:_('cashflow:config_dashboard') }}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

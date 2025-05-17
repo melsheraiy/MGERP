@@ -1,0 +1,24 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {% trans "Cash Flow" %}{% endblock %}
+
+{% block content %}
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+        {{ page_title }}
+    </div>
+    <div class="card-body">
+        <p>{% blocktrans with object_type=transaction.category.transaction_type.name amount=transaction.amount date=transaction.transaction_date|date:"Y-m-d" %}
+            Are you sure you want to delete the {{ object_type }} of {{ amount }} dated {{ date }}?
+        {% endblocktrans %}</p>
+        <p><strong>{% trans "Notes" %}:</strong> {{ transaction.notes|default:"N/A" }}</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">{% trans "Yes, delete" %}</button>
+            <a href="{% url 'cashflow:transaction_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

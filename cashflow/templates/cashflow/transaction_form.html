@@ -1,0 +1,200 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{{ page_title }} - {% trans "Cash Flow" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        {{ page_title }}
+    </div>
+    <div class="card-body">
+        <form method="post" id="transactionForm">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label">{{ form.transaction_date.label }}</label>
+                    {{ form.transaction_date }}
+                    {% if form.transaction_date.errors %}<div class="invalid-feedback d-block">{{ form.transaction_date.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.safe.id_for_label }}" class="form-label">{{ form.safe.label }}</label>
+                    {{ form.safe }}
+                    {% if form.safe.errors %}<div class="invalid-feedback d-block">{{ form.safe.errors|join:", " }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                 <div class="col-md-4 mb-3">
+                    <label for="id_transaction_type_select" class="form-label">{% trans "Transaction Type" %}</label>
+                    <select id="id_transaction_type_select" class="form-select">
+                        <option value="">---------</option>
+                        {% for tt in transaction_types_for_js %}
+                            <option value="{{ tt.id }}">{{ tt.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
+                    {{ form.category }}
+                    {% if form.category.errors %}<div class="invalid-feedback d-block">{{ form.category.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.sub_category.id_for_label }}" class="form-label">{{ form.sub_category.label }}</label>
+                    {{ form.sub_category }}
+                    {% if form.sub_category.errors %}<div class="invalid-feedback d-block">{{ form.sub_category.errors|join:", " }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.amount.id_for_label }}" class="form-label">{{ form.amount.label }}</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}<div class="invalid-feedback d-block">{{ form.amount.errors|join:", " }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">{{ form.payment_method.label }}</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}<div class="invalid-feedback d-block">{{ form.payment_method.errors|join:", " }}</div>{% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.contact.id_for_label }}" class="form-label">{{ form.contact.label }}</label>
+                {{ form.contact }}
+                {% if form.contact.errors %}<div class="invalid-feedback d-block">{{ form.contact.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+                {{ form.notes }}
+                {% if form.notes.errors %}<div class="invalid-feedback d-block">{{ form.notes.errors|join:", " }}</div>{% endif %}
+            </div>
+
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">{% trans "Save Transaction" %}</button>
+                <a href="{% if transaction %}{% url 'cashflow:transaction_list' %}{% else %}{% url 'cashflow:transaction_list' %}{% endif %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const transactionTypeSelect = document.getElementById('id_transaction_type_select');
+    const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
+    const subCategorySelect = document.getElementById('{{ form.sub_category.id_for_label }}');
+    const contactSelect = document.getElementById('{{ form.contact.id_for_label }}');
+
+    // Store initial options for contacts to reset filtering
+    const initialContactOptions = Array.from(contactSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
+
+    function updateOptions(selectElement, options, placeholder) {
+        selectElement.innerHTML = ''; // Clear existing options
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = placeholder || '---------';
+        selectElement.appendChild(defaultOption);
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt.id;
+            option.textContent = opt.name;
+            selectElement.appendChild(option);
+        });
+    }
+
+    transactionTypeSelect.addEventListener('change', function() {
+        const transactionTypeId = this.value;
+        categorySelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+        subCategorySelect.innerHTML = '<option value="">---------</option>'; // Reset subcategories
+        
+        if (transactionTypeId) {
+            fetch(`{% url 'cashflow:ajax_load_categories' %}?transaction_type_id=${transactionTypeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateOptions(categorySelect, data, "{% trans 'Select Category' %}");
+                    // Trigger change on category to potentially load contacts if needed (or handle here)
+                    categorySelect.dispatchEvent(new Event('change')); 
+                });
+        } else {
+            updateOptions(categorySelect, [], "{% trans 'Select Category' %}");
+            updateOptions(subCategorySelect, [], "{% trans 'Select SubCategory' %}");
+            // Reset contacts to all if transaction type is cleared
+            updateOptions(contactSelect, initialContactOptions, "{% trans 'Select Contact' %}");
+        }
+    });
+
+    categorySelect.addEventListener('change', function() {
+        const categoryId = this.value;
+        subCategorySelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+        
+        // Load Subcategories
+        if (categoryId) {
+            fetch(`{% url 'cashflow:ajax_load_subcategories' %}?category_id=${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateOptions(subCategorySelect, data, "{% trans 'Select SubCategory' %}");
+                });
+
+            // Load/Filter Contacts based on selected category's transaction type
+            fetch(`{% url 'cashflow:ajax_load_contacts' %}?category_id=${categoryId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateOptions(contactSelect, data, "{% trans 'Select Contact' %}");
+                });
+
+        } else {
+            updateOptions(subCategorySelect, [], "{% trans 'Select SubCategory' %}");
+            // Reset contacts to all if category is cleared
+            updateOptions(contactSelect, initialContactOptions, "{% trans 'Select Contact' %}");
+        }
+    });
+
+    // Pre-fill and trigger on edit
+    {% if form.instance.pk and form.instance.category %}
+        const initialTransactionTypeId = '{{ form.instance.category.transaction_type.id }}';
+        const initialCategoryId = '{{ form.instance.category.id }}';
+        const initialSubCategoryId = '{{ form.instance.sub_category.id|default_if_none:"" }}';
+        const initialContactId = '{{ form.instance.contact.id|default_if_none:"" }}';
+
+        if (initialTransactionTypeId) {
+            transactionTypeSelect.value = initialTransactionTypeId;
+            // Load categories for the initial transaction type
+            fetch(`{% url 'cashflow:ajax_load_categories' %}?transaction_type_id=${initialTransactionTypeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateOptions(categorySelect, data, "{% trans 'Select Category' %}");
+                    categorySelect.value = initialCategoryId; // Set selected category
+                    // Load subcategories for the initial category
+                    if (initialCategoryId) {
+                        fetch(`{% url 'cashflow:ajax_load_subcategories' %}?category_id=${initialCategoryId}`)
+                            .then(subResponse => subResponse.json())
+                            .then(subData => {
+                                updateOptions(subCategorySelect, subData, "{% trans 'Select SubCategory' %}");
+                                if (initialSubCategoryId) {
+                                    subCategorySelect.value = initialSubCategoryId;
+                                }
+                            });
+                        // Load contacts for the initial category
+                        fetch(`{% url 'cashflow:ajax_load_contacts' %}?category_id=${initialCategoryId}`)
+                            .then(contactResponse => contactResponse.json())
+                            .then(contactData => {
+                                updateOptions(contactSelect, contactData, "{% trans 'Select Contact' %}");
+                                if(initialContactId) {
+                                    contactSelect.value = initialContactId;
+                                }
+                            });
+                    }
+                });
+        }
+    {% elif transaction_types_for_js.0 %}
+        // If new form and there's a default transaction type to select (e.g. first one)
+        // transactionTypeSelect.value = '{{ transaction_types_for_js.0.id }}';
+        // transactionTypeSelect.dispatchEvent(new Event('change'));
+    {% endif %}
+});
+</script>
+{% endblock %}

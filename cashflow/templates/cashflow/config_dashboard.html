@@ -1,0 +1,59 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Configuration Dashboard" %} - {% trans "Cash Flow" %}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-safe fs-1 text-primary"></i>
+                <h5 class="card-title mt-3">{% trans "Manage Safes" %}</h5>
+                <p class="card-text">{% trans "Add, edit, or delete cash safes and bank accounts." %}</p>
+                <a href="{% url 'cashflow:safe_list' %}" class="btn btn-primary">{% trans "Go to Safes" %}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-tags fs-1 text-success"></i>
+                <h5 class="card-title mt-3">{% trans "Manage Transaction Types" %}</h5>
+                <p class="card-text">{% trans "Define types of transactions (e.g., Income, Expense)." %}</p>
+                <a href="{% url 'cashflow:transaction_type_list' %}" class="btn btn-success">{% trans "Go to Transaction Types" %}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-bookmark-star fs-1 text-info"></i>
+                <h5 class="card-title mt-3">{% trans "Manage Categories" %}</h5>
+                <p class="card-text">{% trans "Organize transactions into categories." %}</p>
+                <a href="{% url 'cashflow:category_list' %}" class="btn btn-info">{% trans "Go to Categories" %}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-bookmarks fs-1 text-warning"></i>
+                <h5 class="card-title mt-3">{% trans "Manage SubCategories" %}</h5>
+                <p class="card-text">{% trans "Further classify transactions with subcategories." %}</p>
+                <a href="{% url 'cashflow:subcategory_list' %}" class="btn btn-warning">{% trans "Go to SubCategories" %}</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card text-center h-100">
+            <div class="card-body">
+                <i class="bi bi-person-badge fs-1 text-danger"></i>
+                <h5 class="card-title mt-3">{% trans "Assign Safes to Users" %}</h5>
+                <p class="card-text">{% trans "Manage which users have access to which safes." %}</p>
+                <a href="{% url 'cashflow:usersafeassignment_list' %}" class="btn btn-danger">{% trans "Go to Assignments" %}</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

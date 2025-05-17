@@ -1,0 +1,48 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage Safes" %} - {% trans "Cash Flow" %}{% endblock %}
+{% block page_title %}{% trans "Manage Safes" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{% trans "Safes List" %}</span>
+        <a href="{% url 'cashflow:safe_create' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> {% trans "Add New Safe" %}
+        </a>
+    </div>
+    <div class="card-body">
+        {% if safes %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Name" %}</th>
+                            <th class="text-end">{% trans "Balance" %}</th>
+                            <th>{% trans "Created At" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for safe_item in safes %}
+                        <tr>
+                            <td>{{ safe_item.name }}</td>
+                            <td class="text-end">{{ safe_item.balance|floatformat:2 }}</td>
+                            <td>{{ safe_item.created_at|date:"Y-m-d H:i" }}</td>
+                            <td class="action-buttons">
+                                <a href="{% url 'cashflow:safe_update' safe_item.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                                <a href="{% url 'cashflow:safe_delete' safe_item.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include "cashflow/includes/pagination.html" %}
+        {% else %}
+            <p class="text-center">{% trans "No safes found." %}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

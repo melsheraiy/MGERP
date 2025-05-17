@@ -1,0 +1,66 @@
+{% load i18n %}
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{% url 'cashflow:transaction_list' %}">{% trans "Cash Flow" %}</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#cashflowNavbar" aria-controls="cashflowNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="cashflowNavbar">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'cashflow:transaction_create' %}">
+                        <i class="bi bi-plus-circle-fill"></i> {% trans "New Transaction" %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'cashflow:today_transactions' %}">
+                        <i class="bi bi-calendar-day"></i> {% trans "Today's Transactions" %}
+                        {% if user_today_balance is not None %}
+                            <span class="badge bg-light text-dark ms-1">{{ user_today_balance }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'cashflow:transaction_list' %}">
+                        <i class="bi bi-list-ul"></i> {% trans "All Transactions" %}
+                         {% if user_total_balance is not None %}
+                            <span class="badge bg-info text-dark ms-1">{% trans "Balance" %}: {{ user_total_balance }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% if user.is_superuser %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="configDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-gear-fill"></i> {% trans "Configuration" %}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="configDropdown">
+                        <li><a class="dropdown-item" href="{% url 'cashflow:config_dashboard' %}">{% trans "Config Dashboard" %}</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'cashflow:safe_list' %}">{% trans "Manage Safes" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cashflow:transaction_type_list' %}">{% trans "Manage Transaction Types" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cashflow:category_list' %}">{% trans "Manage Categories" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cashflow:subcategory_list' %}">{% trans "Manage SubCategories" %}</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cashflow:usersafeassignment_list' %}">{% trans "Assign Safes to Users" %}</a></li>
+                    </ul>
+                </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <span class="navbar-text">{% trans "Welcome" %}, {{ user.username }}</span>
+                    </li>
+                    <li class="nav-item">
+                        {# Assuming you have a logout URL named 'logout' in your project's main urls.py #}
+                        <a class="nav-link" href="{% url 'logout' %}">{% trans "Logout" %}</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                         {# Assuming you have a login URL named 'login' #}
+                        <a class="nav-link" href="{% url 'login' %}">{% trans "Login" %}</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

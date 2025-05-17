@@ -37,11 +37,14 @@
                         <li><a class="dropdown-item" href="{% url 'cashflow:config_dashboard' %}">{% trans "Config Dashboard" %}</a></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'cashflow:safe_list' %}">{% trans "Manage Safes" %}</a></li>
-                        <li><a class="dropdown-item" href="{% url 'cashflow:transaction_type_list' %}">{% trans "Manage Transaction Types" %}</a></li>
+                        {# Link to Manage Transaction Types removed #}
                         <li><a class="dropdown-item" href="{% url 'cashflow:category_list' %}">{% trans "Manage Categories" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'cashflow:subcategory_list' %}">{% trans "Manage SubCategories" %}</a></li>
                         <li><a class="dropdown-item" href="{% url 'cashflow:usersafeassignment_list' %}">{% trans "Assign Safes to Users" %}</a></li>
                     </ul>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard' %}">الرجوع</a>
                 </li>
                 {% endif %}
             </ul>
@@ -51,12 +54,10 @@
                         <span class="navbar-text">{% trans "Welcome" %}, {{ user.username }}</span>
                     </li>
                     <li class="nav-item">
-                        {# Assuming you have a logout URL named 'logout' in your project's main urls.py #}
                         <a class="nav-link" href="{% url 'logout' %}">{% trans "Logout" %}</a>
                     </li>
                 {% else %}
                     <li class="nav-item">
-                         {# Assuming you have a login URL named 'login' #}
                         <a class="nav-link" href="{% url 'login' %}">{% trans "Login" %}</a>
                     </li>
                 {% endif %}

@@ -1,0 +1,44 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage Transaction Types" %} - {% trans "Cash Flow" %}{% endblock %}
+{% block page_title %}{% trans "Manage Transaction Types" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{% trans "Transaction Types List" %}</span>
+        <a href="{% url 'cashflow:transaction_type_create' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-plus-lg"></i> {% trans "Add New Transaction Type" %}
+        </a>
+    </div>
+    <div class="card-body">
+        {% if transaction_types %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Name" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tt in transaction_types %}
+                        <tr>
+                            <td>{{ tt.name }}</td>
+                            <td class="action-buttons">
+                                <a href="{% url 'cashflow:transaction_type_update' tt.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                                <a href="{% url 'cashflow:transaction_type_delete' tt.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include "cashflow/includes/pagination.html" %}
+        {% else %}
+            <p class="text-center">{% trans "No transaction types found." %}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "cashflow/base_cashflow.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage User Safe Assignments" %} - {% trans "Cash Flow" %}{% endblock %}
+{% block page_title %}{% trans "Manage User Safe Assignments" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>{% trans "User Safe Assignments List" %}</span>
+        <a href="{% url 'cashflow:usersafeassignment_create' %}" class="btn btn-success btn-sm">
+            <i class="bi bi-person-plus-fill"></i> {% trans "Assign Safe to User" %}
+        </a>
+    </div>
+    <div class="card-body">
+        {% if assignments %}
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>{% trans "User" %}</th>
+                            <th>{% trans "Safe" %}</th>
+                            <th>{% trans "Assigned At" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>{{ assignment.user.username }}</td>
+                            <td>{{ assignment.safe.name }}</td>
+                            <td>{{ assignment.assigned_at|date:"Y-m-d H:i" }}</td>
+                            <td class="action-buttons">
+                                {# Update and Delete for assignments might be direct delete, or edit if more fields are added later #}
+                                <a href="{% url 'cashflow:usersafeassignment_delete' assignment.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Remove Assignment' %}"><i class="bi bi-person-x-fill"></i></a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% include "cashflow/includes/pagination.html" %}
+        {% else %}
+            <p class="text-center">{% trans "No user safe assignments found." %}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -15,22 +15,13 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card text-center h-100">
-            <div class="card-body">
-                <i class="bi bi-tags fs-1 text-success"></i>
-                <h5 class="card-title mt-3">{% trans "Manage Transaction Types" %}</h5>
-                <p class="card-text">{% trans "Define types of transactions (e.g., Income, Expense)." %}</p>
-                <a href="{% url 'cashflow:transaction_type_list' %}" class="btn btn-success">{% trans "Go to Transaction Types" %}</a>
-            </div>
-        </div>
-    </div>
+    {# Transaction Types card removed #}
     <div class="col-md-4 mb-3">
         <div class="card text-center h-100">
             <div class="card-body">
                 <i class="bi bi-bookmark-star fs-1 text-info"></i>
                 <h5 class="card-title mt-3">{% trans "Manage Categories" %}</h5>
-                <p class="card-text">{% trans "Organize transactions into categories." %}</p>
+                <p class="card-text">{% trans "Organize transactions into Income and Expense categories." %}</p>
                 <a href="{% url 'cashflow:category_list' %}" class="btn btn-info">{% trans "Go to Categories" %}</a>
             </div>
         </div>

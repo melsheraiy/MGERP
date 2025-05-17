@@ -1,27 +1,24 @@
 # cashflow/urls.py
 from django.urls import path
-from django.views.generic import RedirectView # Import RedirectView
+from django.views.generic import RedirectView
 from . import views
 
 app_name = 'cashflow'
 
 urlpatterns = [
-    # Redirect the base cashflow/ URL to the transaction list
     path('', RedirectView.as_view(pattern_name='cashflow:transaction_list', permanent=False), name='index'), 
     
-    # Transaction URLs
-    path('transactions/', views.transaction_list_view, name='transaction_list'), # All transactions for user's safe(s)
+    path('transactions/', views.transaction_list_view, name='transaction_list'),
     path('transactions/today/', views.today_transactions_view, name='today_transactions'),
     path('transactions/new/', views.transaction_create_view, name='transaction_create'),
     path('transactions/<int:pk>/edit/', views.transaction_update_view, name='transaction_update'),
     path('transactions/<int:pk>/delete/', views.transaction_delete_view, name='transaction_delete'),
 
     # AJAX URLs for dynamic form filtering
-    path('ajax/load-categories/', views.ajax_load_categories, name='ajax_load_categories'),
+    path('ajax/load-categories/', views.ajax_load_categories, name='ajax_load_categories'), # Now takes type (INCOME/EXPENSE)
     path('ajax/load-subcategories/', views.ajax_load_subcategories, name='ajax_load_subcategories'),
-    path('ajax/load-contacts/', views.ajax_load_contacts, name='ajax_load_contacts'), # For filtering contacts
+    path('ajax/load-contacts/', views.ajax_load_contacts, name='ajax_load_contacts'), 
 
-    # Superuser Configuration URLs
     path('config/', views.config_dashboard_view, name='config_dashboard'),
     
     path('config/safes/', views.SafeListView.as_view(), name='safe_list'),
@@ -29,10 +26,7 @@ urlpatterns = [
     path('config/safes/<int:pk>/edit/', views.SafeUpdateView.as_view(), name='safe_update'),
     path('config/safes/<int:pk>/delete/', views.SafeDeleteView.as_view(), name='safe_delete'),
 
-    path('config/transaction-types/', views.TransactionTypeListView.as_view(), name='transaction_type_list'),
-    path('config/transaction-types/new/', views.TransactionTypeCreateView.as_view(), name='transaction_type_create'),
-    path('config/transaction-types/<int:pk>/edit/', views.TransactionTypeUpdateView.as_view(), name='transaction_type_update'),
-    path('config/transaction-types/<int:pk>/delete/', views.TransactionTypeDeleteView.as_view(), name='transaction_type_delete'),
+    # TransactionType URLs are removed
     
     path('config/categories/', views.CategoryListView.as_view(), name='category_list'),
     path('config/categories/new/', views.CategoryCreateView.as_view(), name='category_create'),

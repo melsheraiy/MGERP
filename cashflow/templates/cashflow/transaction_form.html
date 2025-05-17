@@ -11,6 +11,7 @@
     <div class="card-body">
         <form method="post" id="transactionForm">
             {% csrf_token %}
+            {{ form.media }} {# For widgets like Select2 if used in future #}
             
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -27,13 +28,9 @@
 
             <div class="row">
                  <div class="col-md-4 mb-3">
-                    <label for="id_transaction_type_select" class="form-label">{% trans "Transaction Type" %}</label>
-                    <select id="id_transaction_type_select" class="form-select">
-                        <option value="">---------</option>
-                        {% for tt in transaction_types_for_js %}
-                            <option value="{{ tt.id }}">{{ tt.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="{{ form.transaction_type_selector.id_for_label }}" class="form-label">{{ form.transaction_type_selector.label }}</label>
+                    {{ form.transaction_type_selector }}
+                    {% if form.transaction_type_selector.errors %}<div class="invalid-feedback d-block">{{ form.transaction_type_selector.errors|join:", " }}</div>{% endif %}
                 </div>
                 <div class="col-md-4 mb-3">
                     <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
@@ -61,7 +58,7 @@
             </div>
             
             <div class="mb-3">
-                <label for="{{ form.contact.id_for_label }}" class="form-label">{{ form.contact.label }}</label>
+                <label for="{{ form.contact.id_for_label }}" class="form-label" id="contact_label">{{ form.contact.label }}</label>
                 {{ form.contact }}
                 {% if form.contact.errors %}<div class="invalid-feedback d-block">{{ form.contact.errors|join:", " }}</div>{% endif %}
             </div>
@@ -74,7 +71,7 @@
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">{% trans "Save Transaction" %}</button>
-                <a href="{% if transaction %}{% url 'cashflow:transaction_list' %}{% else %}{% url 'cashflow:transaction_list' %}{% endif %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+                <a href="{% url 'cashflow:transaction_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
             </div>
         </form>
     </div>
@@ -84,16 +81,14 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const transactionTypeSelect = document.getElementById('id_transaction_type_select');
+    const transactionTypeSelectorField = document.getElementById('{{ form.transaction_type_selector.id_for_label }}'); // Corrected ID
     const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
     const subCategorySelect = document.getElementById('{{ form.sub_category.id_for_label }}');
     const contactSelect = document.getElementById('{{ form.contact.id_for_label }}');
+    const contactLabelElement = document.getElementById('contact_label');
 
-    // Store initial options for contacts to reset filtering
-    const initialContactOptions = Array.from(contactSelect.options).map(opt => ({ value: opt.value, text: opt.text }));
-
-    function updateOptions(selectElement, options, placeholder) {
-        selectElement.innerHTML = ''; // Clear existing options
+    function updateOptions(selectElement, options, placeholder, currentVal) {
+        selectElement.innerHTML = ''; 
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
         defaultOption.textContent = placeholder || '---------';
@@ -102,99 +97,79 @@ document.addEventListener('DOMContentLoaded', function() {
             const option = document.createElement('option');
             option.value = opt.id;
             option.textContent = opt.name;
+            if (currentVal && opt.id == currentVal) {
+                option.selected = true;
+            }
             selectElement.appendChild(option);
         });
     }
 
-    transactionTypeSelect.addEventListener('change', function() {
-        const transactionTypeId = this.value;
+    function loadCategoriesAndContacts() {
+        const transactionTypeCode = transactionTypeSelectorField.value;
         categorySelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
-        subCategorySelect.innerHTML = '<option value="">---------</option>'; // Reset subcategories
-        
-        if (transactionTypeId) {
-            fetch(`{% url 'cashflow:ajax_load_categories' %}?transaction_type_id=${transactionTypeId}`)
+        subCategorySelect.innerHTML = '<option value="">---------</option>';
+        contactSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+
+        if (transactionTypeCode) {
+            // Load Categories
+            fetch(`{% url 'cashflow:ajax_load_categories' %}?transaction_type_code=${transactionTypeCode}`)
                 .then(response => response.json())
                 .then(data => {
-                    updateOptions(categorySelect, data, "{% trans 'Select Category' %}");
-                    // Trigger change on category to potentially load contacts if needed (or handle here)
-                    categorySelect.dispatchEvent(new Event('change')); 
+                    updateOptions(categorySelect, data, "{% trans 'Select Category' %}", "{% if form.instance.pk %}{{ form.instance.category.id }}{% endif %}");
+                    // If editing, and category was pre-selected, trigger subcategory load
+                    if (categorySelect.value) { 
+                        categorySelect.dispatchEvent(new Event('change'));
+                    }
+                });
+
+            // Load Contacts and update label
+            fetch(`{% url 'cashflow:ajax_load_contacts' %}?transaction_type_code=${transactionTypeCode}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateOptions(contactSelect, data.contacts, data.label, "{% if form.instance.pk and form.instance.contact %}{{ form.instance.contact.id }}{% endif %}");
+                    contactLabelElement.textContent = data.label;
                 });
         } else {
             updateOptions(categorySelect, [], "{% trans 'Select Category' %}");
             updateOptions(subCategorySelect, [], "{% trans 'Select SubCategory' %}");
-            // Reset contacts to all if transaction type is cleared
-            updateOptions(contactSelect, initialContactOptions, "{% trans 'Select Contact' %}");
+            updateOptions(contactSelect, [], "{% trans 'Select Contact' %}");
+            contactLabelElement.textContent = "{% trans 'Contact' %}";
         }
-    });
+    }
+
+    transactionTypeSelectorField.addEventListener('change', loadCategoriesAndContacts);
 
     categorySelect.addEventListener('change', function() {
         const categoryId = this.value;
         subCategorySelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
         
-        // Load Subcategories
         if (categoryId) {
             fetch(`{% url 'cashflow:ajax_load_subcategories' %}?category_id=${categoryId}`)
                 .then(response => response.json())
                 .then(data => {
-                    updateOptions(subCategorySelect, data, "{% trans 'Select SubCategory' %}");
+                    updateOptions(subCategorySelect, data, "{% trans 'Select SubCategory' %}", "{% if form.instance.pk and form.instance.sub_category %}{{ form.instance.sub_category.id }}{% endif %}");
                 });
-
-            // Load/Filter Contacts based on selected category's transaction type
-            fetch(`{% url 'cashflow:ajax_load_contacts' %}?category_id=${categoryId}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateOptions(contactSelect, data, "{% trans 'Select Contact' %}");
-                });
-
         } else {
             updateOptions(subCategorySelect, [], "{% trans 'Select SubCategory' %}");
-            // Reset contacts to all if category is cleared
-            updateOptions(contactSelect, initialContactOptions, "{% trans 'Select Contact' %}");
         }
     });
 
-    // Pre-fill and trigger on edit
-    {% if form.instance.pk and form.instance.category %}
-        const initialTransactionTypeId = '{{ form.instance.category.transaction_type.id }}';
-        const initialCategoryId = '{{ form.instance.category.id }}';
-        const initialSubCategoryId = '{{ form.instance.sub_category.id|default_if_none:"" }}';
-        const initialContactId = '{{ form.instance.contact.id|default_if_none:"" }}';
-
-        if (initialTransactionTypeId) {
-            transactionTypeSelect.value = initialTransactionTypeId;
-            // Load categories for the initial transaction type
-            fetch(`{% url 'cashflow:ajax_load_categories' %}?transaction_type_id=${initialTransactionTypeId}`)
-                .then(response => response.json())
-                .then(data => {
-                    updateOptions(categorySelect, data, "{% trans 'Select Category' %}");
-                    categorySelect.value = initialCategoryId; // Set selected category
-                    // Load subcategories for the initial category
-                    if (initialCategoryId) {
-                        fetch(`{% url 'cashflow:ajax_load_subcategories' %}?category_id=${initialCategoryId}`)
-                            .then(subResponse => subResponse.json())
-                            .then(subData => {
-                                updateOptions(subCategorySelect, subData, "{% trans 'Select SubCategory' %}");
-                                if (initialSubCategoryId) {
-                                    subCategorySelect.value = initialSubCategoryId;
-                                }
-                            });
-                        // Load contacts for the initial category
-                        fetch(`{% url 'cashflow:ajax_load_contacts' %}?category_id=${initialCategoryId}`)
-                            .then(contactResponse => contactResponse.json())
-                            .then(contactData => {
-                                updateOptions(contactSelect, contactData, "{% trans 'Select Contact' %}");
-                                if(initialContactId) {
-                                    contactSelect.value = initialContactId;
-                                }
-                            });
-                    }
-                });
+    // Initial load if editing or if there's an initial value for transaction_type_selector
+    if (transactionTypeSelectorField.value) {
+        loadCategoriesAndContacts();
+    }
+    // If editing and category is already set, ensure subcategories and contacts are also set correctly
+    {% if form.instance.pk and form.instance.category.id %}
+        // The initial loadCategoriesAndContacts should handle pre-selection of category.
+        // We might need an explicit trigger if the initial category value doesn't auto-trigger subcategories.
+        // This part might need refinement based on how the form.initial is set in the view for edit.
+        // For now, relying on the updateOptions to handle currentVal.
+        if (categorySelect.value === "{{ form.instance.category.id }}") {
+             // If category is correctly pre-selected by the first load, trigger its change to load subcategories
+            categorySelect.dispatchEvent(new Event('change'));
         }
-    {% elif transaction_types_for_js.0 %}
-        // If new form and there's a default transaction type to select (e.g. first one)
-        // transactionTypeSelect.value = '{{ transaction_types_for_js.0.id }}';
-        // transactionTypeSelect.dispatchEvent(new Event('change'));
     {% endif %}
+
 });
 </script>
 {% endblock %}

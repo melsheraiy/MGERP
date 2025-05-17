@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'dashboard',
     'registration',
     'contacts',
-    'spare_parts',
+    'sales',
+    'accounting',
+    'salaries',
 ]
 
 MIDDLEWARE = [

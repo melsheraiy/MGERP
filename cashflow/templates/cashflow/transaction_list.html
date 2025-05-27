@@ -1,5 +1,5 @@
 {% extends "cashflow/base_cashflow.html" %}
-{% load i18n humanize %} {# Assuming you have django.contrib.humanize in INSTALLED_APPS #}
+{% load i18n humanize %}
 
 {% block title %}{{ page_title }} - {% trans "Cash Flow" %}{% endblock %}
 
@@ -16,7 +16,8 @@
                     </span>
                 </span>
                 {% endif %}
-                {% if today_net_flow is not None %}
+                {# Today's Net Flow might be less relevant with running balances, but kept if needed #}
+                {% if today_net_flow is not None %} 
                 <span class="fw-bold ms-3">{% trans "Today's Net Flow" %}: 
                     <span class="{% if today_net_flow >= 0 %}balance-positive{% else %}balance-negative{% endif %}">
                         {{ today_net_flow|floatformat:2|intcomma }}
@@ -27,49 +28,111 @@
         </div>
     </div>
     <div class="card-body">
-        {% if transactions %}
-            <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                    <thead>
-                        <tr>
-                            <th>{% trans "Date" %}</th>
-                            <th>{% trans "Safe" %}</th>
-                            <th>{% trans "Type" %}</th>
-                            <th>{% trans "Category" %}</th>
-                            <th>{% trans "SubCategory" %}</th>
-                            <th class="text-end">{% trans "Amount" %}</th>
-                            <th>{% trans "Payment Method" %}</th>
-                            <th>{% trans "Contact" %}</th>
-                            <th>{% trans "User" %}</th>
-                            <th>{% trans "Actions" %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for transaction in transactions %}
-                        <tr>
-                            <td>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</td>
-                            <td>{{ transaction.safe.name }}</td>
-                            <td>{{ transaction.category.transaction_type.name }}</td>
-                            <td>{{ transaction.category.name }}</td>
-                            <td>{{ transaction.sub_category.name|default:"-" }}</td>
-                            <td class="text-end {% if transaction.category.transaction_type.name == _('Income') or transaction.category.transaction_type.name == _('Internal Transfer In') %}balance-positive{% elif transaction.category.transaction_type.name == _('Expense') or transaction.category.transaction_type.name == _('Internal Transfer Out') %}balance-negative{% endif %}">
-                                {{ transaction.amount|floatformat:2|intcomma }}
-                            </td>
-                            <td>{{ transaction.get_payment_method_display }}</td>
-                            <td>{{ transaction.contact.name|default:"-" }}</td>
-                            <td>{{ transaction.user.username|default:"-" }}</td>
-                            <td class="action-buttons">
-                                <a href="{% url 'cashflow:transaction_update' transaction.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
-                                <a href="{% url 'cashflow:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <ul class="nav nav-tabs" id="transactionTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="combined-tab" data-bs-toggle="tab" data-bs-target="#combined-tab-pane" type="button" role="tab" aria-controls="combined-tab-pane" aria-selected="true">{% trans "Combined" %}</button>
+            </li>
+            {% for safe_data in user_safes_with_transactions %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="safe-{{ safe_data.safe_id }}-tab" data-bs-toggle="tab" data-bs-target="#safe-{{ safe_data.safe_id }}-tab-pane" type="button" role="tab" aria-controls="safe-{{ safe_data.safe_id }}-tab-pane" aria-selected="false">{{ safe_data.safe_name }}</button>
+            </li>
+            {% endfor %}
+        </ul>
+        <div class="tab-content" id="transactionTabsContent">
+            <!-- Combined Transactions Tab -->
+            <div class="tab-pane fade show active" id="combined-tab-pane" role="tabpanel" aria-labelledby="combined-tab" tabindex="0">
+                <div class="table-responsive mt-3">
+                    <table id="combinedTable" class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Safe" %}</th>
+                                <th>{% trans "Category" %}</th>
+                                <th>{% trans "SubCategory" %}</th>
+                                <th>{% trans "Notes" %}</th>
+                                <th class="text-end">{% trans "Debit" %}</th>
+                                <th class="text-end">{% trans "Credit" %}</th>
+                                <th class="text-end">{% trans "Balance" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in combined_transactions_with_balance %}
+                            <tr>
+                                <td>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</td>
+                                <td>{{ transaction.safe.name }}</td>
+                                <td>{{ transaction.category.name }}</td>
+                                <td>{{ transaction.sub_category.name|default:"-" }}</td>
+                                <td>{{ transaction.notes|default:"-" }}</td>
+                                <td class="text-end">
+                                    {% if transaction.category.type == Category.TRANSACTION_TYPE_EXPENSE %}{{ transaction.amount|floatformat:2|intcomma }}{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if transaction.category.type == Category.TRANSACTION_TYPE_INCOME %}{{ transaction.amount|floatformat:2|intcomma }}{% endif %}
+                                </td>
+                                <td class="text-end">{{ transaction.running_balance|floatformat:2|intcomma }}</td>
+                                <td class="action-buttons">
+                                    {% if user.is_superuser or transaction.transaction_date.date == current_date %}
+                                        <a href="{% url 'cashflow:transaction_update' transaction.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="{% url 'cashflow:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
+                                    {% else %}
+                                        <span class="text-muted">{% trans "Locked" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        {% else %}
-            <p class="text-center">{% trans "No transactions found." %}</p>
-        {% endif %}
+
+            <!-- Individual Safe Tabs -->
+            {% for safe_data in user_safes_with_transactions %}
+            <div class="tab-pane fade" id="safe-{{ safe_data.safe_id }}-tab-pane" role="tabpanel" aria-labelledby="safe-{{ safe_data.safe_id }}-tab" tabindex="0">
+                <div class="table-responsive mt-3">
+                    <table id="safeTable{{ safe_data.safe_id }}" class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Category" %}</th>
+                                <th>{% trans "SubCategory" %}</th>
+                                <th>{% trans "Notes" %}</th>
+                                <th class="text-end">{% trans "Debit" %}</th>
+                                <th class="text-end">{% trans "Credit" %}</th>
+                                <th class="text-end">{% trans "Balance" %}</th>
+                                <th>{% trans "Actions" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in safe_data.transactions %}
+                            <tr>
+                                <td>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</td>
+                                <td>{{ transaction.category.name }}</td>
+                                <td>{{ transaction.sub_category.name|default:"-" }}</td>
+                                <td>{{ transaction.notes|default:"-" }}</td>
+                                <td class="text-end">
+                                    {% if transaction.category.type == Category.TRANSACTION_TYPE_EXPENSE %}{{ transaction.amount|floatformat:2|intcomma }}{% endif %}
+                                </td>
+                                <td class="text-end">
+                                    {% if transaction.category.type == Category.TRANSACTION_TYPE_INCOME %}{{ transaction.amount|floatformat:2|intcomma }}{% endif %}
+                                </td>
+                                <td class="text-end">{{ transaction.running_balance|floatformat:2|intcomma }}</td>
+                                <td class="action-buttons">
+                                    {% if user.is_superuser or transaction.transaction_date.date == current_date %}
+                                        <a href="{% url 'cashflow:transaction_update' transaction.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}"><i class="bi bi-pencil-square"></i></a>
+                                        <a href="{% url 'cashflow:transaction_delete' transaction.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}"><i class="bi bi-trash"></i></a>
+                                    {% else %}
+                                        <span class="text-muted">{% trans "Locked" %}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     <div class="card-footer text-center">
         <a href="{% url 'cashflow:transaction_create' %}" class="btn btn-success">
@@ -77,4 +140,20 @@
         </a>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }} {# Includes scripts from base_cashflow.html #}
+<script>
+$(document).ready(function() {
+    $('#combinedTable').DataTable({
+        "order": [[ 0, "desc" ]] // Order by date descending
+    });
+    {% for safe_data in user_safes_with_transactions %}
+    $('#safeTable{{ safe_data.safe_id }}').DataTable({
+        "order": [[ 0, "desc" ]] // Order by date descending
+    });
+    {% endfor %}
+});
+</script>
 {% endblock %}

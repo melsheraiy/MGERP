@@ -49,12 +49,11 @@ class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = [
-            'transaction_date', 'safe', 
+            'safe', 
             'category', 'sub_category', 
             'amount', 'payment_method', 'contact', 'notes'
         ]
         widgets = {
-            'transaction_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
             'safe': forms.Select(attrs={'class': 'form-select'}),
             'category': forms.Select(attrs={'class': 'form-select'}),
             'sub_category': forms.Select(attrs={'class': 'form-select'}),
@@ -73,7 +72,7 @@ class TransactionForm(forms.ModelForm):
 
         # Order fields to place transaction_type_selector before category
         field_order = [
-            'transaction_date', 'safe', 'transaction_type_selector', 'category', 'sub_category',
+            'safe', 'transaction_type_selector', 'category', 'sub_category',
             'amount', 'payment_method', 'contact', 'notes'
         ]
         self.order_fields(field_order)

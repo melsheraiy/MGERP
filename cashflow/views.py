@@ -2,6 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils.translation import gettext_lazy as _
@@ -60,17 +61,61 @@ def get_user_total_balance(user):
 @login_required
 def transaction_list_view(request):
     user_safes = get_user_safes(request.user)
-    transactions = Transaction.objects.filter(safe__in=user_safes).select_related(
+    
+    # Prepare data for each safe
+    user_safes_with_transactions = []
+    for safe_instance in user_safes:
+        transactions_for_safe_asc = Transaction.objects.filter(safe=safe_instance).select_related(
+            'category', 'sub_category', 'user', 'contact'
+        ).order_by('transaction_date', 'created_at')
+        
+        current_run_balance = Decimal('0.00')
+        annotated_transactions_for_safe = []
+        for trans in transactions_for_safe_asc:
+            if trans.category.type == Category.TRANSACTION_TYPE_INCOME:
+                current_run_balance += trans.amount
+            elif trans.category.type == Category.TRANSACTION_TYPE_EXPENSE:
+                current_run_balance -= trans.amount
+            trans.running_balance = current_run_balance
+            annotated_transactions_for_safe.append(trans)
+        
+        # Sort by date descending for display
+        annotated_transactions_for_safe.sort(key=lambda t: t.transaction_date, reverse=True)
+
+        user_safes_with_transactions.append({
+            'safe_id': safe_instance.id,
+            'safe_name': safe_instance.name,
+            'transactions': annotated_transactions_for_safe,
+        })
+
+    # Prepare data for combined transactions
+    all_transactions_asc = Transaction.objects.filter(safe__in=user_safes).select_related(
         'safe', 'category', 'sub_category', 'user', 'contact'
-    ).order_by('-transaction_date', '-created_at')
+    ).order_by('transaction_date', 'created_at')
+
+    overall_run_balance = Decimal('0.00')
+    combined_transactions_with_balance = []
+    for trans in all_transactions_asc:
+        if trans.category.type == Category.TRANSACTION_TYPE_INCOME:
+            overall_run_balance += trans.amount
+        elif trans.category.type == Category.TRANSACTION_TYPE_EXPENSE:
+            overall_run_balance -= trans.amount
+        trans.running_balance = overall_run_balance
+        combined_transactions_with_balance.append(trans)
     
-    total_balance = get_user_total_balance(request.user)
-    
+    # Sort by date descending for display
+    combined_transactions_with_balance.sort(key=lambda t: t.transaction_date, reverse=True)
+
+    total_balance_display = get_user_total_balance(request.user) # Used for display at the top
+
     context = {
-        'transactions': transactions,
+        'user_safes_with_transactions': user_safes_with_transactions,
+        'combined_transactions_with_balance': combined_transactions_with_balance,
         'page_title': _('All Transactions'),
-        'total_balance': total_balance,
-        'user_safes': user_safes,
+        'total_balance': total_balance_display, # For the summary display
+        'user_safes': user_safes, # Still needed for tab generation if not using the more detailed list
+        'Category': Category, # Pass Category model for type comparison in template
+        'current_date': timezone.now().date(),
     }
     return render(request, 'cashflow/transaction_list.html', context)
 
@@ -109,6 +154,7 @@ def transaction_create_view(request):
         if form.is_valid():
             transaction = form.save(commit=False)
             transaction.user = request.user
+            transaction.transaction_date = timezone.now()
             transaction.save()
             return redirect('cashflow:transaction_list')
     else:
@@ -126,7 +172,14 @@ def transaction_update_view(request, pk):
     user_safes = get_user_safes(request.user)
 
     if transaction.safe not in user_safes and not request.user.is_superuser:
-        return redirect('cashflow:transaction_list') 
+        return redirect('cashflow:transaction_list')
+
+    if not request.user.is_superuser:
+        today = timezone.now().date()
+        tx_date = transaction.transaction_date.date()
+        if tx_date != today:
+            messages.error(request, _("You can only edit or delete transactions from the current day."))
+            return redirect('cashflow:transaction_list')
 
     if request.method == 'POST':
         form = TransactionForm(request.POST, instance=transaction, user=request.user)
@@ -150,6 +203,13 @@ def transaction_delete_view(request, pk):
 
     if transaction.safe not in user_safes and not request.user.is_superuser:
         return redirect('cashflow:transaction_list')
+
+    if not request.user.is_superuser:
+        today = timezone.now().date()
+        tx_date = transaction.transaction_date.date()
+        if tx_date != today:
+            messages.error(request, _("You can only edit or delete transactions from the current day."))
+            return redirect('cashflow:transaction_list')
 
     if request.method == 'POST':
         transaction.delete()

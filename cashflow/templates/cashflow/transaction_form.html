@@ -56,6 +56,48 @@
                     {% if form.payment_method.errors %}<div class="invalid-feedback d-block">{{ form.payment_method.errors|join:", " }}</div>{% endif %}
                 </div>
             </div>
+
+            <!-- Bill Count Table Container -->
+            <div id="billCountTableContainer" class="mb-3" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        {% trans "Bill Count Details" %}
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Denomination" %} (SAR)</th>
+                                    <th>{% trans "Count" %}</th>
+                                    <th>{% trans "Subtotal" %} (SAR)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for denom in "200,100,50,20,10,5,1"|split:"," %}
+                                <tr>
+                                    <td>{{ denom }}</td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm bill-count-input" min="0" value="0" data-value="{{ denom }}">
+                                    </td>
+                                    <td><span class="bill-row-subtotal">0.00</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="2" class="text-end">{% trans "Calculated Total from Bills:" %}</th>
+                                    <td><strong id="calculatedBillsTotal">0.00</strong> SAR</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="3">
+                                        <small id="billsTotalMismatchWarning" class="text-danger float-end"></small>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
             
             <div class="mb-3">
                 <label for="{{ form.contact.id_for_label }}" class="form-label" id="contact_label">{{ form.contact.label }}</label>
@@ -84,8 +126,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const transactionTypeSelectorField = document.getElementById('{{ form.transaction_type_selector.id_for_label }}'); // Corrected ID
     const categorySelect = document.getElementById('{{ form.category.id_for_label }}');
     const subCategorySelect = document.getElementById('{{ form.sub_category.id_for_label }}');
-    const contactSelect = document.getElementById('{{ form.contact.id_for_label }}');
+    const contactInput = document.getElementById('{{ form.contact.id_for_label }}'); // This is the <input type="text">
+    const contactDatalist = contactInput ? document.getElementById(contactInput.getAttribute('list')) : null; // Get the <datalist>
     const contactLabelElement = document.getElementById('contact_label');
+
+    // Bill Count Elements
+    const paymentMethodSelect = document.getElementById('{{ form.payment_method.id_for_label }}');
+    const billCountTableContainer = document.getElementById('billCountTableContainer');
+    const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
+    const billCountInputs = document.querySelectorAll('.bill-count-input');
+    const calculatedBillsTotalSpan = document.getElementById('calculatedBillsTotal');
+    const billsTotalMismatchWarningSpan = document.getElementById('billsTotalMismatchWarning');
 
     function updateOptions(selectElement, options, placeholder, currentVal) {
         selectElement.innerHTML = ''; 
@@ -104,11 +155,24 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function updateDatalistOptions(datalistElement, contactsData) {
+        if (!datalistElement) return;
+        datalistElement.innerHTML = ''; // Clear existing options
+        contactsData.forEach(contact => {
+            const option = document.createElement('option');
+            option.value = contact.name;
+            // Optionally, you can add contact.name as text content too, some browsers might show it
+            // option.textContent = contact.name;
+            datalistElement.appendChild(option);
+        });
+    }
+
     function loadCategoriesAndContacts() {
         const transactionTypeCode = transactionTypeSelectorField.value;
         categorySelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
         subCategorySelect.innerHTML = '<option value="">---------</option>';
-        contactSelect.innerHTML = '<option value="">{% trans "Loading..." %}</option>';
+        // For datalist, we don't clear the input field's value here, just update its list
+        // contactInput.value = ''; // Do not clear the typed value
 
         if (transactionTypeCode) {
             // Load Categories
@@ -122,18 +186,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
 
-            // Load Contacts and update label
+            // Load Contacts and update label for Datalist
             fetch(`{% url 'cashflow:ajax_load_contacts' %}?transaction_type_code=${transactionTypeCode}`)
                 .then(response => response.json())
                 .then(data => {
-                    updateOptions(contactSelect, data.contacts, data.label, "{% if form.instance.pk and form.instance.contact %}{{ form.instance.contact.id }}{% endif %}");
-                    contactLabelElement.textContent = data.label;
+                    updateDatalistOptions(contactDatalist, data.contacts);
+                    if (contactLabelElement) contactLabelElement.textContent = data.label;
                 });
         } else {
             updateOptions(categorySelect, [], "{% trans 'Select Category' %}");
             updateOptions(subCategorySelect, [], "{% trans 'Select SubCategory' %}");
-            updateOptions(contactSelect, [], "{% trans 'Select Contact' %}");
-            contactLabelElement.textContent = "{% trans 'Contact' %}";
+            updateDatalistOptions(contactDatalist, []); // Clear datalist options
+            if (contactLabelElement) contactLabelElement.textContent = "{% trans 'Contact' %}";
         }
     }
 
@@ -160,15 +224,109 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     // If editing and category is already set, ensure subcategories and contacts are also set correctly
     {% if form.instance.pk and form.instance.category.id %}
-        // The initial loadCategoriesAndContacts should handle pre-selection of category.
-        // We might need an explicit trigger if the initial category value doesn't auto-trigger subcategories.
-        // This part might need refinement based on how the form.initial is set in the view for edit.
-        // For now, relying on the updateOptions to handle currentVal.
         if (categorySelect.value === "{{ form.instance.category.id }}") {
-             // If category is correctly pre-selected by the first load, trigger its change to load subcategories
             categorySelect.dispatchEvent(new Event('change'));
         }
     {% endif %}
+
+    // --- Bill Count Logic ---
+    function toggleBillCountTable() {
+        if (paymentMethodSelect.value === 'cash') {
+            billCountTableContainer.style.display = '';
+        } else {
+            billCountTableContainer.style.display = 'none';
+            // Clear bill inputs and totals when hiding, and remove validation errors
+            billCountInputs.forEach(input => {
+                input.value = '0';
+            });
+            updateBillCalculations(); // Recalculate to zero out and clear warnings
+            amountInput.setCustomValidity(''); // Clear potential previous validation message
+            billsTotalMismatchWarningSpan.textContent = '';
+        }
+        validateBillTotal(); // Re-validate based on visibility
+    }
+
+    function updateBillCalculations() {
+        let overallTotalFromBills = 0;
+        billCountInputs.forEach(input => {
+            const count = parseInt(input.value) || 0;
+            const billValue = parseFloat(input.dataset.value);
+            const subtotal = count * billValue;
+            // Find the closest 'tr' and then the subtotal span within that row
+            const row = input.closest('tr');
+            if (row) {
+                const subtotalSpan = row.querySelector('.bill-row-subtotal');
+                if (subtotalSpan) {
+                    subtotalSpan.textContent = subtotal.toFixed(2);
+                }
+            }
+            overallTotalFromBills += subtotal;
+        });
+        calculatedBillsTotalSpan.textContent = overallTotalFromBills.toFixed(2);
+        validateBillTotal();
+    }
+
+    function validateBillTotal() {
+        const mainAmount = parseFloat(amountInput.value) || 0;
+        const billsTotal = parseFloat(calculatedBillsTotalSpan.textContent) || 0;
+
+        if (paymentMethodSelect.value === 'cash' && mainAmount !== billsTotal) {
+            billsTotalMismatchWarningSpan.textContent = "{% trans 'Bills total does not match Amount field.' %}";
+            calculatedBillsTotalSpan.classList.add('text-danger');
+            // Set custom validity on the amount field to prevent submission if desired
+            // amountInput.setCustomValidity("{% trans 'Calculated bills total must match this amount when payment method is Cash.' %}");
+        } else {
+            billsTotalMismatchWarningSpan.textContent = "";
+            calculatedBillsTotalSpan.classList.remove('text-danger');
+            amountInput.setCustomValidity("");
+        }
+    }
+
+    if (paymentMethodSelect) {
+        paymentMethodSelect.addEventListener('change', toggleBillCountTable);
+        // Initial check on page load
+        toggleBillCountTable();
+    }
+
+    billCountInputs.forEach(input => {
+        input.addEventListener('input', updateBillCalculations);
+    });
+
+    if (amountInput) {
+        amountInput.addEventListener('input', validateBillTotal);
+    }
+
+    // Clear bill counts if amount is manually changed and payment method is cash
+    // This is an optional behavior, can be refined.
+    // if (amountInput && paymentMethodSelect) {
+    //     amountInput.addEventListener('change', function() {
+    //         if (paymentMethodSelect.value === 'cash') {
+    //             // Potentially clear bills or show a more prominent warning
+    //             // For now, just re-validating is handled by the input event.
+    //         }
+    //     });
+    // }
+
+    // Ensure form validation considers custom validity
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', function(event) {
+            // Re-validate before submit, especially for the amount field's custom validity
+            validateBillTotal();
+            if (!transactionForm.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+                // Optionally, you can focus on the first invalid field or show a general error
+                // For example, if amountInput is invalid:
+                if (!amountInput.checkValidity()){
+                    amountInput.focus();
+                    billsTotalMismatchWarningSpan.textContent = amountInput.validationMessage;
+                }
+            }
+            // This will add Bootstrap's was-validated class to show feedback
+            transactionForm.classList.add('was-validated');
+        });
+    }
 
 });
 </script>

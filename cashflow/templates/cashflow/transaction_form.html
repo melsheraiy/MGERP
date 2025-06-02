@@ -73,7 +73,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for denom in "200,100,50,20,10,5,1"|split:"," %}
+                                {% for denom in bill_denominations %}
                                 <tr>
                                     <td>{{ denom }}</td>
                                     <td>

@@ -186,9 +186,11 @@ def transaction_create_view(request):
     else:
         form = TransactionForm(user=request.user)
     
+    bill_denominations = [200, 100, 50, 20, 10, 5, 1]
     context = {
         'form': form,
         'page_title': _('New Transaction'),
+        'bill_denominations': bill_denominations,
     }
     return render(request, 'cashflow/transaction_form.html', context)
 
@@ -215,10 +217,12 @@ def transaction_update_view(request, pk):
     else:
         form = TransactionForm(instance=transaction, user=request.user)
 
+    bill_denominations = [200, 100, 50, 20, 10, 5, 1]
     context = {
         'form': form,
         'transaction': transaction,
         'page_title': _('Edit Transaction'),
+        'bill_denominations': bill_denominations,
     }
     return render(request, 'cashflow/transaction_form.html', context)
 

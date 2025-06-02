@@ -59,7 +59,9 @@ class TransactionAdmin(admin.ModelAdmin):
 
 @admin.register(UserSafeAssignment)
 class UserSafeAssignmentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'safe', 'assigned_at')
+    list_display = ('user', 'safe', 'is_default', 'assigned_at')
     search_fields = ('user__username', 'safe__name')
-    list_filter = ('safe',)
+    list_filter = ('safe', 'is_default')
     autocomplete_fields = ['user', 'safe']
+    fields = ('user', 'safe', 'is_default', 'assigned_at')
+    readonly_fields = ('assigned_at',)

@@ -137,6 +137,13 @@ class UserSafeAssignment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='safe_assignments', verbose_name=_("User"))
     safe = models.ForeignKey(Safe, on_delete=models.CASCADE, related_name='user_assignments', verbose_name=_("Safe"))
     assigned_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Assigned At"))
+    is_default = models.BooleanField(default=False, verbose_name=_("Default Safe"))
+
+    def save(self, *args, **kwargs):
+        if self.is_default:
+            # Unset other default assignments for this user
+            UserSafeAssignment.objects.filter(user=self.user, is_default=True).exclude(pk=self.pk).update(is_default=False)
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = _("User Safe Assignment")

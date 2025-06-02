@@ -119,14 +119,24 @@ class TransactionForm(forms.ModelForm):
 
 
         if user and not user.is_superuser:
-            assigned_safes_ids = UserSafeAssignment.objects.filter(user=user).values_list('safe_id', flat=True)
-            if len(assigned_safes_ids) == 1:
-                self.fields['safe'].initial = assigned_safes_ids[0]
-                self.fields['safe'].disabled = True
-                self.fields['safe'].queryset = Safe.objects.filter(id=assigned_safes_ids[0])
-            else:
-                self.fields['safe'].queryset = Safe.objects.filter(id__in=assigned_safes_ids)
-        else:
+            assigned_user_safes = list(UserSafeAssignment.objects.filter(user=user).select_related('safe'))
+            if len(assigned_user_safes) == 1:
+                # User has exactly one safe, pre-select and hide.
+                single_safe_instance = assigned_user_safes[0].safe
+                self.fields['safe'].initial = single_safe_instance.pk
+                self.fields['safe'].queryset = Safe.objects.filter(pk=single_safe_instance.pk)
+                self.fields['safe'].widget = forms.HiddenInput()
+            elif len(assigned_user_safes) == 0:
+                # User has no safes, make field hidden and queryset empty.
+                # This will likely cause a validation error if the form is submitted as is,
+                # which is acceptable for now as users without safes shouldn't create transactions.
+                self.fields['safe'].queryset = Safe.objects.none()
+                self.fields['safe'].widget = forms.HiddenInput()
+            else: # User has multiple safes
+                # Field remains visible for selection from their assigned safes.
+                # This will be refined by the "default safe" implementation later.
+                self.fields['safe'].queryset = Safe.objects.filter(pk__in=[asa.safe_id for asa in assigned_user_safes])
+        else: # Superuser
             self.fields['safe'].queryset = Safe.objects.all()
             
         self.fields['category'].queryset = Category.objects.none()

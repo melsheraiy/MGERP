@@ -85,6 +85,7 @@ def transaction_list_view(request):
         user_safes_with_transactions.append({
             'safe_id': safe_instance.id,
             'safe_name': safe_instance.name,
+            'safe_balance': safe_instance.balance, # Added safe's current balance
             'transactions': annotated_transactions_for_safe,
         })
 
@@ -136,14 +137,39 @@ def today_transactions_view(request):
 
     today_income = transactions.filter(category__type=Category.TRANSACTION_TYPE_INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
     today_expense = transactions.filter(category__type=Category.TRANSACTION_TYPE_EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-    today_net_flow = today_income - today_expense
+    overall_today_net_flow = today_income - today_expense # This is the overall net flow
+
+    safes_data_today = []
+    overall_total_balance = get_user_total_balance(request.user) # Renamed from total_balance to avoid conflict
+
+    for safe_instance in user_safes:
+        today_transactions_safe = transactions.filter(safe=safe_instance).order_by('-created_at') # Already filtered for today
+
+        today_income_safe = today_transactions_safe.filter(category__type=Category.TRANSACTION_TYPE_INCOME).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+        today_expense_safe = today_transactions_safe.filter(category__type=Category.TRANSACTION_TYPE_EXPENSE).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+        today_net_flow_safe = today_income_safe - today_expense_safe
+
+        safes_data_today.append({
+            'safe_id': safe_instance.id,
+            'safe_name': safe_instance.name,
+            'safe_balance': safe_instance.balance,
+            'transactions': today_transactions_safe,
+            'today_net_flow': today_net_flow_safe,
+            'today_income': today_income_safe,
+            'today_expense': today_expense_safe,
+        })
 
     context = {
-        'transactions': transactions,
+        'safes_data_today': safes_data_today, # New structured data for today
+        'flat_today_transactions_list': transactions, # For the combined tab, if we want to list all tx
         'page_title': _("Today's Transactions"),
-        'total_balance': total_balance,
-        'today_net_flow': today_net_flow,
-        'user_safes': user_safes,
+        'total_balance': overall_total_balance, # Sum of all safe balances
+        'today_net_flow': overall_today_net_flow, # Changed to match template's top summary variable
+        'overall_today_income': today_income, # Overall income for the day for combined tab content
+        'overall_today_expense': today_expense, # Overall expense for the day for combined tab content
+        'user_safes': user_safes, # For tab generation
+        'Category': Category, # For type comparison in template
+        'current_date': timezone.now().date(), # For edit/delete lock check
     }
     return render(request, 'cashflow/transaction_list.html', context)
 

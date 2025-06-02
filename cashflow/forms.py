@@ -1,4 +1,5 @@
 # cashflow/forms.py
+import uuid
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.db import models # <--- IMPORTED models HERE
@@ -47,7 +48,7 @@ class DatalistInput(forms.widgets.Input):
         super().__init__(attrs)
         self.queryset = queryset if queryset is not None else Contact.objects.none()
         # Ensure a unique id for the datalist for each widget instance
-        self.datalist_id = f"datalist__{forms.utils.uuid.uuid4().hex}"
+        self.datalist_id = f"datalist__{uuid.uuid4().hex}"
 
 
     def get_context(self, name, value, attrs):
